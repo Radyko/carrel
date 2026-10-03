@@ -15,6 +15,20 @@ export function loadPdfJs(): Promise<PdfJs> {
   return loading;
 }
 
+type PdfViewerModule = typeof import('pdfjs-dist/web/pdf_viewer.mjs');
+let loadingViewer: Promise<PdfViewerModule> | null = null;
+
+/** The PDF.js viewer components (page layout, text selection, links). */
+export function loadPdfViewer(): Promise<PdfViewerModule> {
+  loadingViewer ??= (async () => {
+    // The viewer module expects the core library on globalThis.
+    (globalThis as { pdfjsLib?: unknown }).pdfjsLib = await loadPdfJs();
+    await import('pdfjs-dist/web/pdf_viewer.css');
+    return import('pdfjs-dist/web/pdf_viewer.mjs');
+  })();
+  return loadingViewer;
+}
+
 function plausibleTitle(raw: unknown): string {
   if (typeof raw !== 'string') return '';
   const t = raw.replace(/\s+/g, ' ').trim();

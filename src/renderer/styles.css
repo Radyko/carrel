@@ -654,3 +654,442 @@ button.chip:hover {
   justify-content: center;
   color: var(--text-3);
 }
+
+/* ---------- Reader ---------- */
+
+.reader {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.toolbar.inset {
+  padding-left: 84px;
+}
+.save-state {
+  font-size: 11px;
+  color: var(--text-3);
+  min-width: 56px;
+  text-align: right;
+}
+.save-state.error {
+  color: var(--warn-text);
+  font-weight: 600;
+}
+.reader-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.pdf-side {
+  flex: none;
+  min-width: 0;
+  display: flex;
+}
+.divider {
+  flex: none;
+  width: 7px;
+  margin: 0 -3px;
+  z-index: 2;
+  cursor: col-resize;
+  position: relative;
+}
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+  background: var(--line);
+}
+.divider:hover::after,
+body.resizing .divider::after {
+  background: var(--accent);
+  width: 2px;
+  left: 2.5px;
+}
+body.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+body.resizing .pdf-side,
+body.resizing .notes-side {
+  pointer-events: none;
+}
+
+.pdf-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--pdf-bg);
+}
+.pdf-toolbar {
+  height: 34px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-subtle);
+  font-size: 12px;
+}
+.pdf-toolbar .spacer {
+  flex: 1;
+}
+.pdf-toolbar .btn.on {
+  color: var(--accent-text);
+}
+.page-input {
+  width: 38px;
+  height: 22px;
+  text-align: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--bg-field);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.zoom {
+  width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.pdf-body {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+.pdf-scroll {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  outline: none;
+}
+.pdf-scroll .pdfViewer {
+  padding: 12px 0;
+}
+.pdf-scroll .pdfViewer .page {
+  border: none;
+  margin: 0 auto 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+.pdf-error {
+  padding: 40px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.notes-side {
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 8px 14px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.notes-side.full .tabs {
+  justify-content: center;
+}
+.tab {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 7px 12px 8px;
+  border-bottom: 2px solid transparent;
+  color: var(--text-2);
+  white-space: nowrap;
+  cursor: default;
+}
+.tab:hover {
+  color: var(--text);
+}
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+.tab-num {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 400;
+}
+.tab-done {
+  color: var(--accent);
+  font-size: 11px;
+}
+.tab-running {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+  align-self: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-running {
+    animation: none;
+  }
+}
+
+.notes-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+.notes-content {
+  border: 0;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+  max-width: 760px;
+  min-width: 0;
+}
+.stage-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.stage h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.target-label {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.goal {
+  color: var(--text-2);
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+.hint {
+  color: var(--text-3);
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+.my-questions {
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+}
+.my-questions p,
+.purpose-quote {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  user-select: text;
+}
+.purpose-quote {
+  margin: 22px 0 -12px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--text-2);
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.timer .time {
+  color: var(--text-2);
+}
+.timer.running .time {
+  color: var(--text);
+}
+.timer .target {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.timer .bar {
+  flex: 1;
+  max-width: 160px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.timer .bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 6px;
+}
+.checklist li {
+  margin: 0 0 6px;
+}
+.checklist label,
+.list-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.checklist input[type='checkbox'],
+.list-row input[type='checkbox'] {
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+.checklist li.done span {
+  color: var(--text-3);
+}
+
+.question {
+  margin-top: 22px;
+}
+.q-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.q-label {
+  font-weight: 600;
+  font-size: 13px;
+  display: block;
+}
+.q-help {
+  color: var(--text-3);
+  font-size: 12px;
+  margin: 0 0 6px;
+  line-height: 1.45;
+}
+.question textarea.field {
+  margin-top: 4px;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.choice {
+  border: 1px solid var(--line-strong);
+  background: var(--bg-field);
+  border-radius: 15px;
+  padding: 4px 12px;
+  cursor: default;
+}
+.choice:hover {
+  border-color: var(--accent);
+}
+.choice.chosen {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.decision {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.list-field {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.list-row,
+.term-row {
+  align-items: center;
+}
+.term-row {
+  display: grid;
+  grid-template-columns: 34% 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+.field.bare {
+  border-color: transparent;
+  background: transparent;
+  padding: 3px 6px;
+}
+.field.bare:hover {
+  border-color: var(--line);
+}
+.field.bare:focus {
+  background: var(--bg-field);
+  border-color: var(--accent);
+}
+.term-row .term {
+  font-weight: 500;
+}
+.list-row.done .field {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+.list-row .plus {
+  width: 13px;
+  text-align: center;
+  color: var(--text-3);
+}
+.extra-text {
+  margin-top: 6px;
+}
+
+.shared {
+  margin-top: 36px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.rating {
+  display: inline-flex;
+}
+.star {
+  border: 0;
+  background: transparent;
+  font-size: 16px;
+  padding: 0 1px;
+  color: var(--line-strong);
+  cursor: default;
+}
+.star.on {
+  color: var(--accent);
+}
+.other-notes {
+  margin-top: 24px;
+}
+.other-notes summary {
+  font-weight: 600;
+  cursor: default;
+  color: var(--text-2);
+}
+.other-note h4 {
+  margin: 12px 0 2px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.other-note p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
