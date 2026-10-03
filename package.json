@@ -1,5 +1,6 @@
 {
   "name": "carrel",
+  "productName": "Carrel",
   "version": "0.1.0",
   "description": "A quiet desktop app that guides you through reading research papers, and keeps your papers and notes as plain files.",
   "keywords": [
@@ -20,7 +21,10 @@
     "bin",
     "dist",
     "guide",
-    "README.md"
+    "assets",
+    "scripts",
+    "README.md",
+    "docs"
   ],
   "engines": {
     "node": ">=22.12"
@@ -33,7 +37,8 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "prepublishOnly": "npm run typecheck && npm test",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "install-app": "npm run build && node scripts/install-app.js"
   },
   "dependencies": {
     "electron": "^44.5.1",
@@ -50,5 +55,10 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Radyko/carrel.git"
+  },
+  "homepage": "https://github.com/Radyko/carrel#readme"
 }

@@ -13,6 +13,7 @@ const APP_SCHEME = 'carrel';
 const appRoot = path.join(__dirname, '..', '..', '..');
 const rendererDir = path.join(appRoot, 'dist', 'renderer');
 const defaultGuidePath = path.join(appRoot, 'guide', 'default-guide.yaml');
+const iconPath = path.join(appRoot, 'assets', 'icon.png');
 
 protocol.registerSchemesAsPrivileged([
   { scheme: APP_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -180,6 +181,7 @@ function createWindow(): void {
     minWidth: 760,
     minHeight: 480,
     title: 'Carrel',
+    icon: process.platform === 'darwin' ? undefined : iconPath,
     show: false,
     titleBarStyle: isMac ? 'hiddenInset' : 'default',
     trafficLightPosition: isMac ? { x: 16, y: 18 } : undefined,
@@ -252,6 +254,14 @@ if (!app.requestSingleInstanceLock()) {
       dialog.showErrorBox('Carrel could not open your library', `${libraryPath}\n\n${String(err)}`);
       app.quit();
       return;
+    }
+    // Show Carrel's icon in the Dock, also when it runs through npm or npx.
+    if (process.platform === 'darwin') {
+      try {
+        app.dock?.setIcon(iconPath);
+      } catch {
+        /* cosmetic */
+      }
     }
     registerIpc();
     serveRenderer();

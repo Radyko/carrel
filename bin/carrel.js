@@ -11,11 +11,13 @@ const appDir = path.resolve(__dirname, '..');
 const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
-  console.log(`Usage: carrel [--foreground]
+  console.log(`Usage: carrel [--install-app | --foreground]
 
 Opens the Carrel window. Your papers and notes live in ~/Carrel by default
 (change this in Carrel > Settings).
 
+  --install-app  install Carrel as an app (Applications on macOS, the
+                 applications menu on Linux), so you can open it like any other
   --foreground   keep the terminal attached and show the app's log output
   --version      print the version`);
   process.exit(0);
@@ -24,6 +26,11 @@ Opens the Carrel window. Your papers and notes live in ~/Carrel by default
 if (args.includes('--version') || args.includes('-v')) {
   console.log(require(path.join(appDir, 'package.json')).version);
   process.exit(0);
+}
+
+if (args.includes('--install-app')) {
+  require(path.join(appDir, 'scripts', 'install-app.js'));
+  return;
 }
 
 if (!fs.existsSync(path.join(appDir, 'dist', 'node', 'main', 'main.js'))) {
