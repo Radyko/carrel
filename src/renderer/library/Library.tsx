@@ -49,7 +49,7 @@ const COLUMNS: { key: SortKey; label: string; width: string; className?: string 
   { key: 'topics', label: 'Topics', width: '14%' },
   { key: 'pass', label: 'Pass', width: '54px' },
   { key: 'rating', label: 'Rating', width: '72px' },
-  { key: 'lastWorked', label: 'Last worked', width: '96px' },
+  { key: 'lastWorked', label: 'Last worked', width: '108px' },
 ];
 
 function PassDots({ pass, total }: { pass: number; total: number }) {

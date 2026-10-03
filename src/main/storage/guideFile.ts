@@ -20,7 +20,8 @@ export function parseGuideText(text: string): Guide {
   if (doc.errors.length) {
     const e = doc.errors[0];
     const line = e.linePos?.[0]?.line;
-    throw new GuideError(`${line ? `Line ${line}: ` : ''}${e.message.split('\n')[0]}`);
+    const message = e.message.split('\n')[0].replace(/\s*at line \d+, column \d+:?$/, '');
+    throw new GuideError(`${line ? `Line ${line}: ` : ''}${message}.`.replace(/\.\.$/, '.'));
   }
   return parseGuide(doc.toJS());
 }

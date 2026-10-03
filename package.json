@@ -2,7 +2,15 @@
   "name": "carrel",
   "version": "0.1.0",
   "description": "A quiet desktop app that guides you through reading research papers, and keeps your papers and notes as plain files.",
-  "keywords": ["research", "papers", "reading", "notes", "electron", "pdf", "study"],
+  "keywords": [
+    "research",
+    "papers",
+    "reading",
+    "notes",
+    "electron",
+    "pdf",
+    "study"
+  ],
   "license": "MIT",
   "main": "dist/node/main/main.js",
   "bin": {
@@ -24,7 +32,8 @@
     "start": "npm run build && electron .",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run typecheck && npm test",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "electron": "^44.5.1",

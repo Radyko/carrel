@@ -304,6 +304,26 @@ export function App() {
   };
   useEffect(() => api.onMenu((a) => menuRef.current(a)), []);
 
+  // Escape leaves a text field; from there, it goes back to the library.
+  useEffect(() => {
+    if (view.screen === 'library' || form || settingsOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      if (e.key !== 'Escape') return;
+      if (typing) t.blur();
+      else void backToLibrary();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [view.screen, form, settingsOpen, backToLibrary]);
+
+  // The window title follows the open paper.
+  useEffect(() => {
+    const paper = view.screen === 'reader' ? papers.find((p) => p.id === view.id) : null;
+    document.title = paper ? `${paper.meta.title} – Carrel` : view.screen === 'review' ? 'Review – Carrel' : 'Carrel';
+  }, [view, papers]);
+
   // ----- Guide and settings -----
 
   async function chooseLibrary() {
