@@ -1,0 +1,255 @@
+# Carrel reading guide
+#
+# This file describes the reading method Carrel guides you through: the
+# stages, their goals and target times, checklists, questions, decisions,
+# reading purposes, and review intervals. Carrel draws its notes panel from
+# this file, so you can change the method by editing it.
+#
+# Things to know before editing:
+# - `heading` values are the schema of your notes files. Each answer is stored
+#   in notes.md under the heading of its stage (a level-1 "#" heading) and of
+#   its question (a level-2 "##" heading). If you rename a heading here, answers
+#   saved under the old heading are kept in the file and shown read-only under
+#   "Other notes".
+# - `id` values are stored in the front matter of notes files (for example the
+#   decision you made after each pass). Keep them stable.
+# - If this file is missing or invalid, Carrel uses its built-in guide and says
+#   so in the window. Delete this file and use "Restore default guide" in
+#   Settings to get the original back.
+
+version: 1
+name: Three passes
+
+# Free-form notes shown below the questions on every tab, and the section that
+# review results are appended to.
+notes_heading: Notes
+reviews_heading: Reviews
+
+purpose:
+  id: purpose
+  title: Purpose
+  heading: Purpose
+  target: Under a minute
+  goal: Decide why you are reading this paper and what you want from it. The purpose decides how deep to go.
+  choice:
+    label: Why am I reading this?
+    options:
+      - id: course
+        label: Assigned for a course
+        suggested_pass: 2
+      - id: survey
+        label: Surveying an area
+        suggested_pass: 1
+      - id: build
+        label: I might build on this
+        suggested_pass: 3
+      - id: review
+        label: Reviewing or presenting it
+        suggested_pass: 3
+      - id: curiosity
+        label: Curiosity
+        suggested_pass: 1
+  questions:
+    - id: questions
+      heading: What do I want to get out of it?
+      label: What do I want to get out of it?
+      help: One to three questions of your own. They stay at the top of every pass so you read looking for the answers.
+      type: long
+      purpose_questions: true
+
+passes:
+  - id: pass1
+    pass: 1
+    title: Survey
+    heading: "Pass 1: Survey"
+    goal: Get a bird's-eye view and decide whether to read further.
+    target:
+      label: 5 to 10 minutes
+      minutes: 10
+    checklist:
+      - id: abstract
+        text: Read the title and abstract carefully
+      - id: conclusion
+        text: Read the conclusion. If the paper doesn't conclude anything, that is a reason to stop
+      - id: figures
+        text: Look at the figures and their captions. In systems papers the evaluation graphs are often the real content
+      - id: headings
+        text: Read the introduction, then the section and sub-section headings only
+      - id: references
+        text: Glance over the references and note the ones you already know
+    questions:
+      - id: category
+        heading: Category
+        help: What type of paper is this? A measurement, an analysis of an existing system, a description of a prototype?
+        type: short
+      - id: context
+        heading: Context
+        help: Which other papers is it related to? What theory does it build on?
+        type: short
+      - id: correctness
+        heading: Correctness
+        help: Do the assumptions appear to be valid?
+        type: short
+      - id: contributions
+        heading: Contributions
+        help: What are the paper's main contributions?
+        type: short
+      - id: clarity
+        heading: Clarity
+        help: Is the paper well written?
+        type: short
+      - id: summary
+        heading: Summary after pass 1
+        help: Without looking at the paper, in two or three sentences, what is this paper about and what does it claim?
+        type: long
+        recall: true
+        summary: true
+    decision:
+      prompt: What next?
+      options:
+        - id: continue
+          label: Continue to pass 2
+          next: pass2
+          status: in-progress
+        - id: later
+          label: Come back later
+          status: in-progress
+        - id: stop
+          label: Stop here
+          status: read
+          help: Stopping after a survey is a normal, successful outcome for most papers.
+
+  - id: pass2
+    pass: 2
+    title: Comprehend
+    heading: "Pass 2: Comprehend"
+    goal: Grasp the content, without details such as proofs, well enough to summarise it to someone else with supporting evidence.
+    target:
+      label: Up to 1 hour
+      minutes: 60
+    checklist:
+      - id: read
+        text: Read the whole paper with care, skipping proofs and fine detail
+      - id: figures
+        text: Study every figure, diagram, and graph. Are the axes labelled? Are there error bars? Are the baselines fair?
+      - id: references
+        text: Mark references you have not read and want to follow up
+    questions:
+      - id: problem
+        heading: Problem
+        help: What problem is being solved, and why does it matter?
+        type: short
+      - id: approach
+        heading: Approach
+        help: What did the authors do? What is the key idea?
+        type: short
+      - id: results
+        heading: Results
+        help: What did they find, and what evidence supports it?
+        type: short
+      - id: conclusion
+        heading: Conclusion
+        help: What do the authors conclude, and do the results support it?
+        type: short
+      - id: figures
+        heading: Figures and evidence
+        help: Notes on the figures.
+        type: long
+      - id: references
+        heading: References to chase
+        help: Add one per line and tick them off as you read them.
+        type: checklist
+      - id: terms
+        heading: Terms I didn't know
+        help: A term and what it means.
+        type: terms
+      - id: summary
+        heading: Summary after pass 2
+        help: Without looking at the paper, write the main thrust and the evidence for it, as if explaining it to a classmate.
+        type: long
+        recall: true
+        summary: true
+      - id: answered
+        heading: Did I get what I came for?
+        help: Were the questions you started with answered?
+        type: short
+        show_purpose_questions: true
+    decision:
+      prompt: What next?
+      options:
+        - id: continue
+          label: Continue to pass 3
+          next: pass3
+          status: in-progress
+        - id: later
+          label: Come back later
+          status: in-progress
+          note:
+            id: background
+            heading: Background I need first
+            label: What background do you need first? (optional)
+        - id: set-aside
+          label: Set aside
+          status: set-aside
+        - id: done
+          label: Done
+          status: read
+          schedule_review: true
+
+  - id: pass3
+    pass: 3
+    title: Reconstruct
+    heading: "Pass 3: Reconstruct"
+    goal: Mentally re-create the work, making the same assumptions as the authors, then compare your version with theirs to find the paper's innovations and its hidden failings.
+    target:
+      label: 1 to 5 hours
+      minutes: 300
+    checklist: []
+    questions:
+      - id: assumptions
+        heading: Assumptions
+        help: What does the paper assume, both stated and unstated? Which would you challenge?
+        type: long
+      - id: alternatives
+        heading: Alternatives
+        help: What else could explain these results? What would you have compared against?
+        type: long
+      - id: strengths
+        heading: Strengths
+        help: What is strong about this work?
+        type: long
+      - id: weaknesses
+        heading: Weaknesses
+        help: Where are the problems in the experiments, the analysis, or the missing citations?
+        type: long
+      - id: how-i-would
+        heading: How I would have done it
+        help: How would you have approached or presented this?
+        type: long
+      - id: future-work
+        heading: Ideas for future work
+        type: long
+      - id: connections
+        heading: Connections
+        help: "How does this relate to other papers you have read? (Example: \"Section 3 is the same technique as X, with Y added.\")"
+        type: long
+    decision:
+      prompt: When you have finished
+      options:
+        - id: done
+          label: Done
+          status: read
+          schedule_review: true
+
+review:
+  # Days until the next review. After "Done" at a pass that schedules review,
+  # the paper is due after the first interval. "Remembered" moves to the next
+  # interval; "Fuzzy" repeats the current one. After the last interval is
+  # remembered, the paper leaves the schedule.
+  intervals: [7, 30, 90]
+  target: About two minutes
+  prompt: What do you remember?
+  help: Without opening the paper, write what you remember of the main idea and the evidence for it.
+  outcomes:
+    remembered: Remembered
+    fuzzy: Fuzzy
