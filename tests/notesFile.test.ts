@@ -152,3 +152,14 @@ describe('notes file', () => {
     expect(() => setFront(f, { rating: 3 })).toThrow();
   });
 });
+
+describe('new headings', () => {
+  it('get a blank line before them when added after text', () => {
+    const f = parseNotes('---\ntitle: x\n---\n# Pass 1: Survey\n\n## Category\n\nLast line without blank');
+    setAnswer(f, 'Notes', 'Anything', 'n', { sections: [...schema.sections] });
+    setAnswer(f, 'Pass 1: Survey', 'Context', 'c', schema);
+    expect(serializeNotes(f)).toBe(
+      '---\ntitle: x\n---\n# Pass 1: Survey\n\n## Category\n\nLast line without blank\n\n## Context\n\nc\n\n# Notes\n\n## Anything\n\nn\n\n',
+    );
+  });
+});

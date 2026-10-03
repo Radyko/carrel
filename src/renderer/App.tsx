@@ -396,6 +396,7 @@ export function App() {
           ids={view.ids}
           guide={state.guide}
           today={today}
+          isMac={isMac}
           onDone={backToLibrary}
           onError={report}
         />

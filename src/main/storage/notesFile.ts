@@ -263,12 +263,27 @@ function insertIndex(existing: string[], order: string[], heading: string): numb
   return before >= 0 ? before : existing.length;
 }
 
+/** Makes sure text before a new heading ends with a blank line, for readability. */
+function padBefore(node: { raw: string } | undefined): void {
+  if (node && node.raw.trim() && !node.raw.endsWith('\n\n')) node.raw += node.raw.endsWith('\n') ? '\n' : '\n\n';
+}
+
+function lastNodeOf(section: Section): SubSection {
+  return section.subs.length ? section.subs[section.subs.length - 1] : section;
+}
+
 function ensureSection(file: NotesFile, heading: string, schema: NotesSchema): Section {
   const found = findSection(file, heading);
   if (found) return found;
   const section: Section = { heading, headingLine: `# ${heading}\n`, raw: '\n', subs: [] };
   const order = schema.sections.map((s) => s.heading);
   const at = insertIndex(file.sections.map((s) => s.heading), order, heading);
+  if (at > 0) padBefore(lastNodeOf(file.sections[at - 1]));
+  else if (file.preamble.trim()) {
+    const p = { raw: file.preamble };
+    padBefore(p);
+    file.preamble = p.raw;
+  }
   file.sections.splice(at, 0, section);
   return section;
 }
@@ -280,6 +295,7 @@ function ensureSub(file: NotesFile, sectionHeading: string, heading: string, sch
   const sub: SubSection = { heading, headingLine: `## ${heading}\n`, raw: '\n' };
   const order = schema.sections.find((s) => same(s.heading, sectionHeading))?.fields ?? [];
   const at = insertIndex(section.subs.map((s) => s.heading), order, heading);
+  padBefore(at > 0 ? section.subs[at - 1] : section);
   section.subs.splice(at, 0, sub);
   return sub;
 }
@@ -321,8 +337,7 @@ export function appendSub(
   schema: NotesSchema,
 ): void {
   const section = ensureSection(file, sectionHeading, schema);
-  const last = section.subs.length ? section.subs[section.subs.length - 1] : section;
-  if (last.raw.trim() && !last.raw.endsWith('\n\n')) last.raw += last.raw.endsWith('\n') ? '\n' : '\n\n';
+  padBefore(lastNodeOf(section));
   section.subs.push({ heading, headingLine: `## ${heading.replace(/\n/g, ' ')}\n`, raw: valueToRaw(value) });
 }
 

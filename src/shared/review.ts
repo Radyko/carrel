@@ -11,7 +11,7 @@ export type ReviewOutcome = 'remembered' | 'fuzzy';
 
 type Schedule = Pick<PaperMeta, 'nextReview' | 'reviewInterval'>;
 
-export function isDue(meta: Schedule, today: string): boolean {
+export function isDue(meta: Pick<PaperMeta, 'nextReview'>, today: string): boolean {
   return !!meta.nextReview && meta.nextReview <= today;
 }
 
