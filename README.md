@@ -91,6 +91,9 @@ Removing a paper moves it to the Trash.
   its Dock icon and choose Quit), then open it again. This could happen with
   updates to version 0.3 or earlier if Carrel was open. Updates now close
   Carrel properly first.
+- **Carrel takes a while to open the first time**: macOS checks a newly
+  installed app before opening it, which can take a minute on a slower
+  computer. Later opens are quick.
 - **Anything else**: [open an issue](https://github.com/Radyko/carrel/issues)
   and say what you did and what you saw.
 

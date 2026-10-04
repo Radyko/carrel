@@ -85,6 +85,9 @@ function greet() {
   console.log(`\n  ${paint('38;2;233;199;123', '▌')}${name} ${paint('2', `${version} · a quiet study desk for research papers`)}\n`);
 }
 
+const FIRST_OPEN =
+  'Opening Carrel. The first time, macOS checks the new app before it opens, which can take a minute on a slower computer.\n';
+
 async function installAndOpen() {
   // The hand-over below runs this command again; greet only once.
   if (!process.env.CARREL_NO_UPDATE_CHECK) greet();
@@ -103,16 +106,19 @@ async function installAndOpen() {
     }
   }
   const installed = installer.installedApp();
+  let justInstalled = false;
   // Install when missing or older; never replace a newer app with this one.
   if (!installed || compareVersions(installed.version, version) < 0 || has('--reinstall')) {
     const what = installed ? `Updating Carrel to ${version}` : 'Setting up Carrel as an app on this computer';
     process.stdout.write(`${what}… `);
     const where = installer.install();
+    justInstalled = true;
     console.log(`done.\nCarrel is in ${process.platform === 'darwin' ? path.dirname(where) : where}. Open it from there any time.`);
   } else if (compareVersions(installed.version, version) > 0) {
     console.log(`Carrel ${installed.version} is installed, which is newer than this ${version}. Opening it.`);
   }
   installer.openInstalled(passThrough);
+  if (justInstalled && process.platform === 'darwin') console.log(FIRST_OPEN);
   return true;
 }
 
@@ -124,8 +130,9 @@ if (!runHere && installer.canInstall()) {
         console.error(`\n${err.message}\n`);
         process.exit(1);
       }
-      console.error(`\nCould not install Carrel as an app (${err.message}).\nOpening it directly instead.\n`);
+      console.error(`\nCould not install Carrel as an app (${err.message}).\nOpening it directly instead.`);
       runFromPackage();
+      if (process.platform === 'darwin') console.log(FIRST_OPEN);
     },
   );
 } else {

@@ -163,6 +163,39 @@ function stopRunning(target, log) {
   }
 }
 
+/**
+ * Changing the bundle (its name, icon and the app inside) breaks the seal of
+ * Electron's signature on the outer app. Its helpers and frameworks are
+ * untouched and keep their own signatures, so only the outer bundle is signed
+ * again, for this computer only (an ad-hoc signature, which macOS accepts for
+ * apps built locally). Signing every part with --deep is discouraged by Apple
+ * and fails on some Macs ("main executable failed strict validation"), so it
+ * is only a fallback. If signing fails anyway, Carrel is installed regardless:
+ * an app built on this Mac opens without a fresh seal.
+ */
+function signApp(app, log) {
+  // Extended attributes from the download (such as Finder info) make codesign refuse.
+  try {
+    run('xattr', ['-cr', app]);
+  } catch {
+    /* nothing to clear */
+  }
+  let problem = '';
+  for (const args of [
+    ['--force', '--sign', '-', app],
+    ['--force', '--deep', '--sign', '-', app],
+  ]) {
+    try {
+      run('codesign', args);
+      return true;
+    } catch (err) {
+      problem = String(err.stderr || err.message).trim().split('\n').pop();
+    }
+  }
+  log(`Could not sign it (${problem}); installing it anyway`);
+  return false;
+}
+
 function installMac(log) {
   const dist = electronDist();
   const existing = installedApp();
@@ -205,11 +238,8 @@ function installMac(log) {
     }
     run('iconutil', ['-c', 'icns', iconset, '-o', path.join(resources, 'electron.icns')]);
 
-    // Changing the bundle invalidates Electron's signature; sign it again for
-    // this computer only (an ad-hoc signature), which macOS accepts for apps
-    // built locally.
     log('Signing it for this Mac');
-    run('codesign', ['--force', '--deep', '--sign', '-', staging]);
+    signApp(staging, log);
 
     stopRunning(target, log);
 
