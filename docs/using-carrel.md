@@ -74,12 +74,13 @@ Carrel just shows how many are due.
 Open Settings from the bottom of the sidebar (or ⌘,).
 
 - **Mode**: Light, Dark, or match your computer.
-- **Background**: Paper (white), Linen and Sepia (warm, easier on the eyes in
-  long sessions, and they tint the PDF pages too), Mist (cool) or Sage (soft
-  green).
-- **Accent**: the colour of buttons, selections and links. Pick one of the
-  dots, or click the rainbow dot to choose any colour. Carrel adjusts how light
-  it is so text stays readable in both light and dark mode.
+- **Background**: Linen (the default) and Sepia are warm, easier on the eyes
+  in long sessions, and tint the PDF pages too. Paper is plain white, Mist is
+  cool, and Sage is a soft green.
+- **Accent**: the colour of buttons, selections and links. Yale blue is the
+  default; the other dots are deep, muted colours. The rainbow dot lets you
+  choose any colour. Carrel adjusts how light it is so text stays readable in
+  both light and dark mode.
 - **Updates**: shows your version and installs a new one when there is one.
 - **Your files**: where your library lives, and the reading guide file.
 
@@ -93,7 +94,7 @@ touched.
 From Terminal, this always installs the latest version:
 
 ```sh
-npx @radyko/carrel@latest
+npx radyko/carrel
 ```
 
 To check for updates, Carrel asks npm (where it is published) for the latest

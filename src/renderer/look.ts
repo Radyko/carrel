@@ -1,4 +1,4 @@
-import { normalizeLook, type Look } from '../shared/look';
+import { DEFAULT_ACCENT, DEFAULT_TONE, normalizeLook, type Look } from '../shared/look';
 
 const KEY = 'carrel.look';
 
@@ -21,8 +21,8 @@ export function rememberLook(look: Look): void {
 export function applyRememberedLook(): void {
   try {
     const saved = localStorage.getItem(KEY);
-    if (saved) applyLook(normalizeLook(JSON.parse(saved)));
+    applyLook(saved ? normalizeLook(JSON.parse(saved)) : { tone: DEFAULT_TONE, accent: DEFAULT_ACCENT });
   } catch {
-    /* the settings arrive a moment later anyway */
+    applyLook({ tone: DEFAULT_TONE, accent: DEFAULT_ACCENT });
   }
 }

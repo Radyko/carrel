@@ -10,7 +10,7 @@ import { normalizeLook } from '../shared/look';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { loadGuide, restoreDefaultGuide, type LoadedGuide } from './storage/guideFile';
 import { Library } from './storage/library';
-import { checkForUpdate, installKind, installUpdate, updateCommand } from './updates';
+import { checkForUpdate, installKind, installUpdate, UPDATE_COMMAND } from './updates';
 
 const APP_SCHEME = 'carrel';
 const appRoot = path.join(__dirname, '..', '..', '..');
@@ -55,7 +55,7 @@ function state(): AppState {
     platform: process.platform,
     version: app.getVersion(),
     install: installKind(),
-    updateCommand: updateCommand(packageName),
+    updateCommand: UPDATE_COMMAND,
   };
 }
 
@@ -209,6 +209,8 @@ function registerIpc(): void {
   });
   ipcMain.handle('settings:look', async (_e, look: Partial<Settings['look']>) => {
     settings.look = normalizeLook({ ...settings.look, ...look });
+    if (look.tone !== undefined) settings.toneChosen = true;
+    if (look.accent !== undefined) settings.accentChosen = true;
     await saveSettings(settings);
     return state();
   });
