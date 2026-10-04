@@ -26,7 +26,7 @@ export interface Accent {
 // Deep, muted colours, the kind found on college crests, cloth bindings and
 // old maps. The colour wheel in Settings is there for anything brighter.
 export const ACCENTS: Accent[] = [
-  { name: 'Yale blue', color: '#00356b' },
+  { name: 'Navy', color: '#00356b' },
   { name: 'Slate', color: '#3d5a80' },
   { name: 'Deep teal', color: '#1f5c63' },
   { name: 'Forest', color: '#2f5a43' },

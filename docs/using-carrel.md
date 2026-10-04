@@ -18,7 +18,7 @@ opening it.
 ## Adding papers
 
 - Drop a PDF on the window, or click **Add PDF…** (⌘O).
-- For a paper you read in print, click **Add without PDF…** (⌘N).
+- For a paper you read in print, press ⌘N (File → New Entry Without PDF).
 
 Carrel copies the PDF into your library. Your original stays where it was.
 
@@ -78,7 +78,7 @@ Open Settings from the bottom of the sidebar (or ⌘,).
 - **Background**: Linen (the default) and Sepia are warm, easier on the eyes
   in long sessions, and tint the PDF pages too. Paper is plain white, Mist is
   cool, and Sage is a soft green.
-- **Accent**: the colour of buttons, selections and links. Yale blue is the
+- **Accent**: the colour of buttons, selections and links. Navy is the
   default; the other dots are deep, muted colours. The rainbow dot lets you
   choose any colour. Carrel adjusts how light it is so text stays readable in
   both light and dark mode.

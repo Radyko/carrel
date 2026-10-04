@@ -62,9 +62,6 @@ export function Preview({ paper, guide, today, isMac, ...on }: Props) {
         <button className="btn" onClick={() => on.onEdit(paper.id)}>
           Edit details…
         </button>
-        <button className="btn" onClick={() => on.onReveal(paper.id)}>
-          {isMac ? 'Reveal in Finder' : 'Show in folder'}
-        </button>
       </div>
 
       <dl className="facts">
@@ -161,13 +158,17 @@ export function Preview({ paper, guide, today, isMac, ...on }: Props) {
 
       {summaryFields(guide).map(({ stage, question }) => {
         const text = paper.summaries[stage.id]?.[question.id] ?? '';
-        return (
+        return text ? (
           <div className="summary-block" key={`${stage.id}.${question.id}`}>
             <h4>{question.label}</h4>
-            {text ? <p>{text}</p> : <p className="none">Not written yet</p>}
+            <p>{text}</p>
           </div>
-        );
+        ) : null;
       })}
+
+      <button className="btn quiet small reveal" onClick={() => on.onReveal(paper.id)}>
+        {isMac ? 'Show in Finder' : 'Show in folder'}
+      </button>
     </aside>
   );
 }
