@@ -400,18 +400,29 @@ textarea.field {
   padding: 8px 10px 12px;
   border-top: 1px solid var(--line);
 }
+/* A quiet "Update ready" with a dot, which opens Settings. */
 .update-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 0;
-  border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 11px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
   font-weight: 500;
-  background: var(--accent-soft);
+  background: none;
   color: var(--accent-text);
   cursor: default;
 }
+.update-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
 .update-pill:hover {
-  background: var(--bg-selected);
+  background: var(--bg-hover);
 }
 
 .list-pane {
@@ -1669,11 +1680,26 @@ textarea.hl-card-note {
   border: 1px solid var(--line);
   color: var(--text);
 }
-.update-box p {
-  margin: 0 0 6px;
+.update-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  margin-bottom: 8px;
 }
-.update-box .btn {
-  margin-top: 4px;
+.update-row .help {
+  margin-top: 2px;
+}
+.update-title {
+  font-weight: 500;
+}
+.update-ok {
+  color: var(--accent-text);
+  font-size: 15px;
 }
 
 .more-details {

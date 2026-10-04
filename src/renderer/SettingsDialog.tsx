@@ -266,15 +266,21 @@ function Updates({
     );
   }
 
-  if (!update || update.state === 'checking') return <p className="help">Checking for updates…</p>;
+  if (!update || update.state === 'checking') {
+    return (
+      <div className="update-row">
+        <div className="help">Checking for updates…</div>
+      </div>
+    );
+  }
 
   if (update.state === 'available') {
     return (
-      <div className="update-box">
-        <p>
-          <strong>Carrel {update.latest} is ready.</strong> You have {update.version}.
-        </p>
-        <p className="help">Carrel closes, updates, and opens again by itself. Your papers and notes aren’t touched.</p>
+      <div className="update-row">
+        <div>
+          <div className="update-title">Carrel {update.latest} is ready</div>
+          <div className="help">You have {update.version}. Carrel restarts by itself; notes are kept.</div>
+        </div>
         <button
           className="btn primary"
           disabled={busy}
@@ -287,13 +293,25 @@ function Updates({
             }
           }}
         >
-          {busy ? 'Updating…' : `Update to ${update.latest}`}
+          {busy ? 'Updating…' : 'Update'}
         </button>
       </div>
     );
   }
 
-  if (update.state === 'current') return <p className="help">✓ You have the latest version.</p>;
+  if (update.state === 'current') {
+    return (
+      <div className="update-row">
+        <div>
+          <div className="update-title">Carrel {update.version}</div>
+          <div className="help">You have the latest version.</div>
+        </div>
+        <span className="update-ok" aria-hidden>
+          ✓
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="help">
