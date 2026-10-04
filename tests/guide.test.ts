@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { GUIDE_FILE, loadGuide, parseGuideText } from '../src/main/storage/guideFile';
 import { DEFAULT_GUIDE_PATH, defaultGuide, tempDir } from './helpers';
 
@@ -20,7 +20,6 @@ describe('guide', () => {
       'Context',
       'Correctness',
       'Contributions',
-      'Clarity',
       'Summary after pass 1',
     ]);
     expect(g.passes[0].decisions.map((d) => [d.id, d.status, d.scheduleReview])).toEqual([
@@ -69,5 +68,31 @@ describe('guide', () => {
   it('rejects duplicate headings, which would make the notes ambiguous', async () => {
     const text = (await fs.readFile(DEFAULT_GUIDE_PATH, 'utf8')).replace('heading: Context', 'heading: Category');
     expect(() => parseGuideText(text)).toThrow(/heading "Category" is used more than once/);
+  });
+});
+
+describe('guide upgrades', () => {
+  // The default guide as shipped in 0.2.0.
+  let oldDefault = '';
+  beforeAll(async () => {
+    oldDefault = await fs.readFile(path.join(__dirname, 'fixtures', 'guide-0.2.0.yaml'), 'utf8');
+  });
+
+  it('replaces an unedited copy of an earlier default with the current one', async () => {
+    const root = await tempDir();
+    await fs.writeFile(path.join(root, GUIDE_FILE), oldDefault);
+    const loaded = await loadGuide(root, DEFAULT_GUIDE_PATH, { install: false });
+    expect(loaded.problem).toBeNull();
+    expect(await fs.readFile(path.join(root, GUIDE_FILE), 'utf8')).toBe(await fs.readFile(DEFAULT_GUIDE_PATH, 'utf8'));
+    expect(loaded.guide.passes[0].questions.map((q) => q.id)).not.toContain('clarity');
+  });
+
+  it('never replaces a guide the user edited', async () => {
+    const root = await tempDir();
+    const edited = oldDefault.replace('heading: Category', 'heading: Kind of paper');
+    await fs.writeFile(path.join(root, GUIDE_FILE), edited);
+    const loaded = await loadGuide(root, DEFAULT_GUIDE_PATH, { install: false });
+    expect(await fs.readFile(path.join(root, GUIDE_FILE), 'utf8')).toBe(edited);
+    expect(loaded.guide.passes[0].questions[0].heading).toBe('Kind of paper');
   });
 });

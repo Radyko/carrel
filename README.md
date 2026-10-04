@@ -41,7 +41,8 @@ notes stay in `~/Carrel` either way.
 
    Each pass asks you a few pointed questions. Stopping after the first pass is
    normal; most papers don't need more.
-4. **Highlight as you go.** Select text in the PDF and pick a colour.
+4. **Highlight and comment.** Select text in the PDF, pick a colour, and jot a
+   note beside it.
 5. **Summarise from memory.** Carrel can hide the PDF while you write.
 6. **Review.** A week, a month and three months later, Carrel asks what you
    remember, then shows you what you wrote at the time.

@@ -4,7 +4,8 @@
 sidebar; your papers in the middle (click a column header to sort); and a
 preview on the right with the details and your pass 1 and pass 2 summaries, so
 you can refresh your memory of a paper without opening it. The search box
-matches titles, authors and the text of your notes.
+matches titles, authors and the text of your notes. Hide the sidebar with the
+button at the top left (or ⌃⌘S) when you just want the list of papers.
 
 **Collections** group papers however you work: one per course, one per
 research project, one for a reading group. A paper can be in several. Click
@@ -25,10 +26,13 @@ decision at the end. Move between tabs freely. Everything you type saves
 automatically. Summary fields have a button that hides the PDF while you write
 from memory; show it again afterwards to correct what you got wrong.
 
-**Highlight** by selecting text in the PDF and picking a colour from the small
-bar that appears (or ⌘⇧H for yellow). Click a highlight to change its colour,
-copy it, or remove it. Your highlights are listed under the questions with
-their page numbers; click a page number to jump there.
+**Highlight and comment** by selecting text in the PDF and picking a colour
+from the small bar that appears (or ⌘⇧H for yellow). A note card opens on the
+right, above the pass you're on, ready for your comment; it saves as you type.
+Click a highlight on the page to open its note again, change its colour, copy
+it or remove it; Escape closes the card. Highlights with a note get a small
+dot in the margin. All your highlights and notes are listed under the
+questions; click one to jump to it in the PDF.
 
 **Appearance**: Settings lets you match the system, or always use Light or
 Dark.
@@ -54,6 +58,7 @@ schedule. There are no notifications.
 | ⌘⇧P | Hide or show the PDF |
 | ⌘= / ⌘− / ⌘0 | Zoom in, zoom out, fit to width |
 | ⌘⇧H | Highlight the selected text |
+| ⌃⌘S | Show or hide the library sidebar |
 | ⌘I | Edit details |
 | ⌘⇧R | Reveal in Finder |
 | ⌘R | Review due papers |

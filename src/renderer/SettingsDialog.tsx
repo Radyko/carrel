@@ -90,6 +90,8 @@ export function SettingsDialog({ state, ...on }: Props) {
           <span>Search the library</span>
           <kbd>Return</kbd>
           <span>Open the selected paper</span>
+          <kbd>{state.platform === 'darwin' ? '⌃⌘S' : 'Ctrl+Alt+S'}</kbd>
+          <span>Show or hide the sidebar</span>
           <kbd>{mod}L</kbd>
           <span>Back to the library</span>
           <kbd>{mod}1 – {mod}4</kbd>

@@ -379,7 +379,7 @@ export function summarize(doc: PaperDoc, guide: Guide): PaperSummary {
   const searchText = [
     ...Object.values(doc.answers).flatMap((a) => Object.values(a)),
     doc.notes,
-    ...parseHighlights(doc.highlights).items.map((h) => h.text),
+    ...parseHighlights(doc.highlights).items.flatMap((h) => [h.text, h.note]),
     ...doc.other.map((o) => o.text),
   ]
     .filter(Boolean)

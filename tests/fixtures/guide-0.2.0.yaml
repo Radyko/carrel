@@ -31,7 +31,7 @@ purpose:
   title: Purpose
   heading: Purpose
   target: Under a minute
-  goal: Why are you reading this, and what do you want from it? Your answer decides how deep to go.
+  goal: Decide why you are reading this paper and what you want from it. The purpose decides how deep to go.
   choice:
     label: Why am I reading this?
     options:
@@ -54,7 +54,7 @@ purpose:
     - id: questions
       heading: What do I want to get out of it?
       label: What do I want to get out of it?
-      help: One to three questions of your own. They stay at the top of every pass.
+      help: One to three questions of your own. They stay at the top of every pass so you read looking for the answers.
       type: long
       purpose_questions: true
 
@@ -63,41 +63,45 @@ passes:
     pass: 1
     title: Survey
     heading: "Pass 1: Survey"
-    goal: Get the big picture, then decide whether it's worth reading further.
+    goal: Get a bird's-eye view and decide whether to read further.
     target:
       label: 5 to 10 minutes
       minutes: 10
     checklist:
       - id: abstract
-        text: Title and abstract
+        text: Read the title and abstract carefully
       - id: conclusion
-        text: Introduction and conclusion
-      - id: headings
-        text: Section headings
+        text: Read the conclusion. If the paper doesn't conclude anything, that is a reason to stop
       - id: figures
-        text: Figures and tables
+        text: Look at the figures and their captions. In systems papers the evaluation graphs are often the real content
+      - id: headings
+        text: Read the introduction, then the section and sub-section headings only
       - id: references
-        text: Skim the references
+        text: Glance over the references and note the ones you already know
     questions:
       - id: category
         heading: Category
-        help: What kind of paper is this?
+        help: What type of paper is this? A measurement, an analysis of an existing system, a description of a prototype?
         type: short
       - id: context
         heading: Context
-        help: What does it build on, or respond to?
+        help: Which other papers is it related to? What theory does it build on?
         type: short
       - id: correctness
         heading: Correctness
-        help: Do the assumptions seem reasonable?
+        help: Do the assumptions appear to be valid?
         type: short
       - id: contributions
         heading: Contributions
-        help: What does it claim to add?
+        help: What are the paper's main contributions?
+        type: short
+      - id: clarity
+        heading: Clarity
+        help: Is the paper well written?
         type: short
       - id: summary
         heading: Summary after pass 1
-        help: From memory, in two or three sentences, what is it about and what does it claim?
+        help: Without looking at the paper, in two or three sentences, what is this paper about and what does it claim?
         type: long
         recall: true
         summary: true
@@ -120,37 +124,41 @@ passes:
     pass: 2
     title: Comprehend
     heading: "Pass 2: Comprehend"
-    goal: Understand it well enough to explain it to someone else, without getting stuck on details.
+    goal: Grasp the content, without details such as proofs, well enough to summarise it to someone else with supporting evidence.
     target:
       label: Up to 1 hour
       minutes: 60
     checklist:
       - id: read
-        text: Read it all, skipping proofs and fine detail
+        text: Read the whole paper with care, skipping proofs and fine detail
       - id: figures
-        text: Study the figures and tables
+        text: Study every figure, diagram, and graph. Are the axes labelled? Are there error bars? Are the baselines fair?
       - id: references
-        text: Note references to follow up
+        text: Mark references you have not read and want to follow up
     questions:
       - id: problem
         heading: Problem
-        help: What problem does it tackle, and why does it matter?
+        help: What problem is being solved, and why does it matter?
         type: short
       - id: approach
         heading: Approach
-        help: What did the authors do? What's the key idea?
+        help: What did the authors do? What is the key idea?
         type: short
       - id: results
         heading: Results
-        help: What did they find, and what's the evidence?
+        help: What did they find, and what evidence supports it?
         type: short
       - id: conclusion
         heading: Conclusion
-        help: Do the results support the conclusions?
+        help: What do the authors conclude, and do the results support it?
         type: short
+      - id: figures
+        heading: Figures and evidence
+        help: Notes on the figures.
+        type: long
       - id: references
         heading: References to chase
-        help: One per line; tick them off as you read them.
+        help: Add one per line and tick them off as you read them.
         type: checklist
       - id: terms
         heading: Terms I didn't know
@@ -158,13 +166,13 @@ passes:
         type: terms
       - id: summary
         heading: Summary after pass 2
-        help: From memory, explain the main idea and the evidence for it, as if to a friend.
+        help: Without looking at the paper, write the main thrust and the evidence for it, as if explaining it to a classmate.
         type: long
         recall: true
         summary: true
       - id: answered
         heading: Did I get what I came for?
-        help: Were your questions answered?
+        help: Were the questions you started with answered?
         type: short
         show_purpose_questions: true
     decision:
@@ -180,7 +188,7 @@ passes:
           note:
             id: background
             heading: Background I need first
-            label: What do you need to learn first? (optional)
+            label: What background do you need first? (optional)
         - id: set-aside
           label: Set aside
           status: set-aside
@@ -193,7 +201,7 @@ passes:
     pass: 3
     title: Reconstruct
     heading: "Pass 3: Reconstruct"
-    goal: Rebuild the work in your head, then compare it with what the authors did to find its strengths and weak spots.
+    goal: Mentally re-create the work, making the same assumptions as the authors, then compare your version with theirs to find the paper's innovations and its hidden failings.
     target:
       label: 1 to 5 hours
       minutes: 300
@@ -201,19 +209,30 @@ passes:
     questions:
       - id: assumptions
         heading: Assumptions
-        help: What does it assume, stated or not? Which would you challenge?
+        help: What does the paper assume, both stated and unstated? Which would you challenge?
         type: long
-      - id: strengths-weaknesses
-        heading: Strengths and weaknesses
-        help: What is convincing, and what isn't?
+      - id: alternatives
+        heading: Alternatives
+        help: What else could explain these results? What would you have compared against?
         type: long
-      - id: differently
-        heading: What I would do differently
-        help: How would you have approached or tested it?
+      - id: strengths
+        heading: Strengths
+        help: What is strong about this work?
         type: long
-      - id: ideas
-        heading: Ideas and connections
-        help: How does it connect to other work you know, and what would you try next?
+      - id: weaknesses
+        heading: Weaknesses
+        help: Where are the problems in the experiments, the analysis, or the missing citations?
+        type: long
+      - id: how-i-would
+        heading: How I would have done it
+        help: How would you have approached or presented this?
+        type: long
+      - id: future-work
+        heading: Ideas for future work
+        type: long
+      - id: connections
+        heading: Connections
+        help: "How does this relate to other papers you have read? (Example: \"Section 3 is the same technique as X, with Y added.\")"
         type: long
     decision:
       prompt: When you have finished
@@ -231,7 +250,7 @@ review:
   intervals: [7, 30, 90]
   target: About two minutes
   prompt: What do you remember?
-  help: Without opening the paper, write down the main idea and the evidence for it.
+  help: Without opening the paper, write what you remember of the main idea and the evidence for it.
   outcomes:
     remembered: Remembered
     fuzzy: Fuzzy

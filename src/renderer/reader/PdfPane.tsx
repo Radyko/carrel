@@ -18,6 +18,8 @@ export interface PdfHandle {
   goToPage(page: number): void;
   /** Highlights the current text selection, if there is one in the PDF. */
   highlightSelection(color?: HighlightColor): void;
+  /** Scrolls a highlight into view. */
+  revealHighlight(h: Highlight): void;
 }
 
 /** A new highlight: the part of a selection on one page. */
@@ -29,13 +31,13 @@ interface Props {
   onPageChange: (page: number) => void;
   highlights: Highlight[];
   onAddHighlights: (items: NewHighlight[]) => void;
-  onRecolorHighlight: (id: string, color: HighlightColor) => void;
-  onDeleteHighlight: (id: string) => void;
+  /** The highlight whose note is open, if any. */
+  activeHighlightId: string | null;
+  onActivateHighlight: (id: string | null) => void;
 }
 
-type Popover =
-  | { kind: 'selection'; x: number; y: number; parts: NewHighlight[] }
-  | { kind: 'highlight'; x: number; y: number; id: string };
+/** The colour picker shown under a fresh text selection. */
+type Popover = { x: number; y: number; parts: NewHighlight[] };
 
 const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'Yellow', green: 'Green', blue: 'Blue', pink: 'Pink' };
 
@@ -45,6 +47,8 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   const [popover, setPopover] = useState<Popover | null>(null);
   const highlightsRef = useRef(props.highlights);
   highlightsRef.current = props.highlights;
+  const activeRef = useRef(props.activeHighlightId);
+  activeRef.current = props.activeHighlightId;
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerElRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<PDFViewer | null>(null);
@@ -84,7 +88,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         viewerRef.current = viewer;
         // pdf.js redraws pages as you scroll and zoom; draw highlights onto each one.
         eventBus.on('pagerendered', (e: { pageNumber: number; source: { div: HTMLDivElement } }) =>
-          drawHighlights(e.source.div, e.pageNumber, highlightsRef.current),
+          drawHighlights(e.source.div, e.pageNumber, highlightsRef.current, activeRef.current),
         );
         eventBus.on('pagesinit', () => {
           if (!viewer) return;
@@ -135,9 +139,11 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   // Redraw when highlights change.
   useEffect(() => {
     containerRef.current?.querySelectorAll<HTMLDivElement>('.page[data-page-number]').forEach((div) => {
-      if (div.querySelector('.canvasWrapper')) drawHighlights(div, Number(div.dataset.pageNumber), props.highlights);
+      if (div.querySelector('.canvasWrapper')) {
+        drawHighlights(div, Number(div.dataset.pageNumber), props.highlights, props.activeHighlightId);
+      }
     });
-  }, [props.highlights]);
+  }, [props.highlights, props.activeHighlightId]);
 
   /** The selection in the PDF, split by page and turned into page fractions. */
   const selectionParts = useCallback((): NewHighlight[] => {
@@ -168,7 +174,13 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
       byPage.set(p.page, [...(byPage.get(p.page) ?? []), rect]);
     }
     const text = sel.toString().replace(/\s+/g, ' ').trim();
-    const parts = [...byPage.entries()].map(([page, rects]) => ({ page, rects: mergeLineRects(rects), color: 'yellow' as HighlightColor, text }));
+    const parts = [...byPage.entries()].map(([page, rects]) => ({
+      page,
+      rects: mergeLineRects(rects),
+      color: 'yellow' as HighlightColor,
+      text,
+      note: '',
+    }));
     if (parts.length > 1) {
       // Split the quote roughly between pages; the rectangles are what matter on screen.
       parts.forEach((p, i) => (p.text = i === 0 ? text : `(continued) ${text}`));
@@ -186,7 +198,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     [props, selectionParts],
   );
 
-  // After a selection, offer colours; after a click on a highlight, offer to change or remove it.
+  // After a selection, offer colours. A click on a highlight opens its note beside the paper.
   const onMouseUp = (e: React.MouseEvent) => {
     const body = bodyRef.current;
     if (!body || e.button !== 0) return;
@@ -194,11 +206,11 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     setTimeout(() => {
       const parts = selectionParts();
       if (parts.length) {
-        setPopover({ kind: 'selection', x: e.clientX - at.left, y: e.clientY - at.top, parts });
+        setPopover({ x: e.clientX - at.left, y: e.clientY - at.top, parts });
         return;
       }
       const pageDiv = (e.target as HTMLElement).closest<HTMLDivElement>('.page[data-page-number]');
-      if (!pageDiv) return setPopover(null);
+      if (!pageDiv) return;
       const box = pageDiv.getBoundingClientRect();
       const fx = (e.clientX - box.left) / box.width;
       const fy = (e.clientY - box.top) / box.height;
@@ -206,7 +218,8 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
       const hit = highlightsRef.current.find(
         (h) => h.page === page && h.rects.some(([x, y, w, hh]) => fx >= x && fx <= x + w && fy >= y && fy <= y + hh),
       );
-      setPopover(hit ? { kind: 'highlight', x: e.clientX - at.left, y: e.clientY - at.top, id: hit.id } : null);
+      if (hit) props.onActivateHighlight(hit.id);
+      else if (activeRef.current) props.onActivateHighlight(null);
     }, 0);
   };
 
@@ -226,9 +239,18 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     fitWidth,
     goToPage: go,
     highlightSelection: (color) => addFromSelection(color),
+    revealHighlight: (h) => {
+      go(h.page);
+      // The page may still be drawing; wait for the highlight to appear, then centre it.
+      let tries = 0;
+      const tryScroll = () => {
+        const mark = containerRef.current?.querySelector(`.hl[data-id="${CSS.escape(h.id)}"]`);
+        if (mark) mark.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        else if (tries++ < 20) setTimeout(tryScroll, 60);
+      };
+      tryScroll();
+    },
   }));
-
-  const popoverHighlight = popover?.kind === 'highlight' ? props.highlights.find((h) => h.id === popover.id) : undefined;
 
   return (
     <div className="pdf-pane">
@@ -277,7 +299,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
             <div className="pdfViewer" ref={viewerElRef} />
           </div>
         )}
-        {popover && (popover.kind === 'selection' || popoverHighlight) && (
+        {popover && (
           <div
             className="hl-popover"
             style={{ left: popover.x, top: popover.y + 14 }}
@@ -286,39 +308,12 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
             {HIGHLIGHT_COLORS.map((c) => (
               <button
                 key={c}
-                className={`hl-dot hl-${c}${popoverHighlight?.color === c ? ' on' : ''}`}
-                title={popover.kind === 'selection' ? `Highlight in ${COLOR_NAMES[c].toLowerCase()}` : COLOR_NAMES[c]}
-                aria-label={COLOR_NAMES[c]}
-                onClick={() =>
-                  popover.kind === 'selection'
-                    ? addFromSelection(c, popover.parts)
-                    : (props.onRecolorHighlight(popover.id, c), setPopover(null))
-                }
+                className={`hl-dot hl-${c}`}
+                title={`Highlight in ${COLOR_NAMES[c].toLowerCase()}`}
+                aria-label={`Highlight in ${COLOR_NAMES[c].toLowerCase()}`}
+                onClick={() => addFromSelection(c, popover.parts)}
               />
             ))}
-            {popoverHighlight && (
-              <>
-                <span className="hl-sep" />
-                <button
-                  className="btn quiet small"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(popoverHighlight.text);
-                    setPopover(null);
-                  }}
-                >
-                  Copy
-                </button>
-                <button
-                  className="btn quiet small"
-                  onClick={() => {
-                    props.onDeleteHighlight(popoverHighlight.id);
-                    setPopover(null);
-                  }}
-                >
-                  Remove
-                </button>
-              </>
-            )}
           </div>
         )}
       </div>
@@ -327,16 +322,25 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
 });
 
 /** Draws a page's highlights in a layer between the page image and its text. */
-function drawHighlights(pageDiv: HTMLDivElement, page: number, highlights: Highlight[]): void {
+function drawHighlights(pageDiv: HTMLDivElement, page: number, highlights: Highlight[], activeId: string | null): void {
   pageDiv.querySelector(':scope > .carrel-highlights')?.remove();
   const mine = highlights.filter((h) => h.page === page);
   if (!mine.length) return;
   const layer = document.createElement('div');
   layer.className = 'carrel-highlights';
   for (const h of mine) {
+    // A small dot in the margin marks a highlight that has a note.
+    if (h.note.trim() && h.rects.length) {
+      const [x, y, , hh] = h.rects[0];
+      const dot = document.createElement('div');
+      dot.className = `hl-note-dot hl-${h.color}`;
+      dot.style.left = `${Math.max(0.005, x - 0.022) * 100}%`;
+      dot.style.top = `${(y + hh / 2) * 100}%`;
+      layer.appendChild(dot);
+    }
     for (const [x, y, w, hh] of h.rects) {
       const mark = document.createElement('div');
-      mark.className = `hl hl-${h.color}`;
+      mark.className = `hl hl-${h.color}${h.id === activeId ? ' active' : ''}`;
       mark.dataset.id = h.id;
       mark.style.left = `${x * 100}%`;
       mark.style.top = `${y * 100}%`;

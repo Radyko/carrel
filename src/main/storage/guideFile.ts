@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import YAML from 'yaml';
@@ -5,6 +6,21 @@ import { GuideError, parseGuide, type Guide } from '../../shared/guide';
 import { readTextIfExists, writeFileAtomic } from './files';
 
 export const GUIDE_FILE = 'guide.yaml';
+
+/**
+ * SHA-256 hashes of default guides from earlier versions of Carrel. A guide
+ * file matching one of these was never edited, so it is safe to replace with
+ * the current default; that is how improvements to the default reach people.
+ * Add the hash of the current default here whenever it changes.
+ */
+const PREVIOUS_DEFAULTS = new Set([
+  'ce2569ca27d91f4d8610b5cd452e2f69c2a0a1c2a5e36a70ac59a5c87f8d96d1', // 0.1.0
+  '214b9ef3cca378f6d03515dc4fbca9f66d2fe7b5f7de0387db551549bf38f38d', // 0.2.0
+]);
+
+export function guideHash(text: string): string {
+  return createHash('sha256').update(text).digest('hex');
+}
 
 export interface LoadedGuide {
   guide: Guide;
@@ -46,6 +62,10 @@ export async function loadGuide(
   let text = await readTextIfExists(guidePath);
   if (text === null && options.install) {
     await fs.mkdir(libraryRoot, { recursive: true });
+    await writeFileAtomic(guidePath, defaultText);
+    text = defaultText;
+  }
+  if (text !== null && text !== defaultText && PREVIOUS_DEFAULTS.has(guideHash(text))) {
     await writeFileAtomic(guidePath, defaultText);
     text = defaultText;
   }

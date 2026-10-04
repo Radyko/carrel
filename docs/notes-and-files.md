@@ -81,9 +81,10 @@ highlight sits:
 # Highlights
 
 - p. 4: “PagedAttention divides the KV cache into blocks” <!-- carrel id=k3f9 color=yellow rects=0.112,0.341,0.402,0.012 -->
+  Your note on the highlight, indented under it.
 ```
 
-Deleting a line in an editor removes that highlight.
+Deleting a highlight's line in an editor removes that highlight.
 
 Collections live in each paper's `collections` field. `~/Carrel/collections.yaml`
 remembers their names and order, so a collection can exist before it has any
@@ -116,6 +117,10 @@ intervals) lives in `~/Carrel/guide.yaml`, which Carrel writes on first run
 from [`guide/default-guide.yaml`](../guide/default-guide.yaml). Edit it in any
 text editor; Carrel reloads it when its window regains focus. Comments at the
 top of the file explain the rules.
+
+When a new version of Carrel improves the default guide, your `guide.yaml` is
+updated to match, but only if you never edited it. A guide you have changed is
+always left alone.
 
 If the file is missing or invalid, Carrel falls back to the built-in guide and
 says so at the top of the window. Settings has a button to restore the
