@@ -329,7 +329,14 @@ textarea.field {
 .sidebar-top {
   height: var(--toolbar-h);
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
   -webkit-app-region: drag;
+}
+.sidebar-top > * {
+  -webkit-app-region: no-drag;
 }
 .sidebar-scroll {
   flex: 1;
@@ -1527,9 +1534,6 @@ textarea.hl-card-note {
 /* Sidebar toggle */
 .sidebar-toggle {
   color: var(--text-2);
-}
-.sidebar-toggle.on {
-  color: var(--accent-text);
 }
 .current-filter {
   font-weight: 600;

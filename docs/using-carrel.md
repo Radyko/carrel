@@ -11,8 +11,9 @@ paper's details and your summaries, so you can refresh your memory without
 opening it.
 
 - **Search** (⌘F) looks through titles, authors and everything you wrote.
-- **Hide the sidebar** with the button at the top left (or ⌃⌘S) when you just
-  want the list.
+- **Hide the sidebar** with the button at the top of it (or ⌃⌘S) when you just
+  want the list. The same button, now at the top left of the list, brings it
+  back.
 
 ## Adding papers
 
@@ -86,8 +87,10 @@ Open Settings from the bottom of the sidebar (or ⌘,).
 
 ## Updating
 
-When a new version is out, **Update to …** appears at the bottom of the
-sidebar, and Settings shows an **Update** button. Carrel closes, updates
+Carrel looks for a new version when it opens, when you open Settings, and
+when you come back to its window (at most once an hour). When one is out,
+**Update to …** appears at the bottom of the sidebar (or in the toolbar when
+the sidebar is hidden), and Settings shows an **Update** button. Carrel closes, updates
 itself, and opens again in about a minute. Your papers and notes aren't
 touched.
 

@@ -180,7 +180,9 @@ export function Library(props: Props) {
     <div className="library">
       {props.sidebarOpen && (
         <aside className="sidebar">
-          <div className="sidebar-top" />
+          <div className="sidebar-top">
+            <SidebarToggle open onToggle={props.onToggleSidebar} />
+          </div>
           <nav className="sidebar-scroll" aria-label="Library groups">
             <h3>Library</h3>
             {GROUPS.map((g) => sideItem({ kind: 'group', id: g.id }, g.label, count({ kind: 'group', id: g.id }), g.id === 'due'))}
@@ -226,18 +228,7 @@ export function Library(props: Props) {
 
       <section className="list-pane">
         <div className={`toolbar${props.sidebarOpen ? '' : ' inset'}`}>
-          <button
-            className={`btn quiet icon sidebar-toggle${props.sidebarOpen ? ' on' : ''}`}
-            onClick={props.onToggleSidebar}
-            title={props.sidebarOpen ? 'Hide the sidebar' : 'Show the sidebar'}
-            aria-label={props.sidebarOpen ? 'Hide the sidebar' : 'Show the sidebar'}
-            aria-pressed={props.sidebarOpen}
-          >
-            <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden>
-              <rect x="0.75" y="0.75" width="14.5" height="12.5" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M5.5 1v12" stroke="currentColor" strokeWidth="1.3" />
-            </svg>
-          </button>
+          {!props.sidebarOpen && <SidebarToggle open={false} onToggle={props.onToggleSidebar} />}
           {!props.sidebarOpen && <span className="current-filter">{filterLabel(ui.filter)}</span>}
           <button className="btn" onClick={props.onAddPdf} title="Add a PDF (or drop one on the window)">
             Add PDF…
@@ -246,6 +237,11 @@ export function Library(props: Props) {
             Add without PDF…
           </button>
           <div className="spacer" />
+          {!props.sidebarOpen && props.updateVersion && (
+            <button className="update-pill" onClick={props.onSettings} title="See what’s new and update">
+              Update to {props.updateVersion}
+            </button>
+          )}
           {ui.filter.kind === 'group' && ui.filter.id === 'due' && dueIds.length > 0 && (
             <button className="btn primary" onClick={() => props.onReview(dueIds)}>
               Start review
@@ -428,4 +424,17 @@ function NameField({ initial, onDone, onCancel }: { initial: string; onDone: (na
 function filterLabel(f: Filter): string {
   if (f.kind === 'group') return GROUPS.find((g) => g.id === f.id)?.label ?? '';
   return f.value;
+}
+
+/** Shows or hides the sidebar: in the sidebar's top bar when open, at the start of the toolbar when closed. */
+function SidebarToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  const label = open ? 'Hide the sidebar' : 'Show the sidebar';
+  return (
+    <button className="btn quiet icon sidebar-toggle" onClick={onToggle} title={label} aria-label={label} aria-expanded={open}>
+      <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden>
+        <rect x="0.75" y="0.75" width="14.5" height="12.5" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M5.5 1v12" stroke="currentColor" strokeWidth="1.3" />
+      </svg>
+    </button>
+  );
 }

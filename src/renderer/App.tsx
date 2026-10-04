@@ -126,14 +126,25 @@ export function App() {
     rememberLook({ tone, accent });
   }, [tone, accent]);
 
-  // Look for a new version at start, and again whenever Settings opens.
+  // Look for a new version at start, whenever Settings opens, and when the
+  // window comes back into focus (at most hourly; on a Mac, Carrel can stay
+  // open for days).
   const ready = state !== null;
+  const lastCheck = useRef(0);
   useEffect(() => {
-    if (!ready || (!settingsOpen && update) || update?.state === 'available') return;
+    if (!ready) return;
     let live = true;
-    void api.checkForUpdate().then((u) => live && setUpdate(u));
+    const check = (force: boolean) => {
+      if (!force && Date.now() - lastCheck.current < 60 * 60 * 1000) return;
+      lastCheck.current = Date.now();
+      void api.checkForUpdate().then((u) => live && setUpdate((prev) => (prev?.state === 'available' && u.state === 'offline' ? prev : u)));
+    };
+    check(settingsOpen || lastCheck.current === 0);
+    const onFocus = () => check(false);
+    window.addEventListener('focus', onFocus);
     return () => {
       live = false;
+      window.removeEventListener('focus', onFocus);
     };
   }, [ready, settingsOpen]);
 
