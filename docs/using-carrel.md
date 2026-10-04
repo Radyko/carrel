@@ -19,7 +19,10 @@ opening it.
 - Drop a PDF on the window, or click **Add PDF…** (⌘O).
 - For a paper you read in print, press ⌘N (File → New Entry Without PDF).
 
-Carrel copies the PDF into your library. Your original stays where it was.
+Carrel fills in the title for you by reading it off the paper's first page
+(the largest text at the top), so you rarely need to type it. Check it and
+fix it if needed. Carrel copies the PDF into your library; your original
+stays where it was.
 
 ## Collections
 

@@ -1,3 +1,5 @@
+import { pickTitle, titleFromFirstPage, type TextPiece } from '../shared/pdfTitle';
+
 // PDF.js is loaded on demand so the library opens quickly.
 
 type PdfJs = typeof import('pdfjs-dist');
@@ -38,19 +40,44 @@ function plausibleTitle(raw: unknown): string {
   return t;
 }
 
-/** The title from a PDF's metadata, if it has a sensible one. */
+/**
+ * A PDF's title: the largest text at the top of its first page, or failing
+ * that the title in its metadata, if that is a sensible one.
+ */
 export async function pdfTitle(data: Uint8Array): Promise<string> {
   try {
     const pdfjs = await loadPdfJs();
     const task = pdfjs.getDocument({ data: data.slice() });
     try {
       const doc = await task.promise;
-      const { info, metadata } = await doc.getMetadata();
-      return plausibleTitle(metadata?.get('dc:title')) || plausibleTitle((info as { Title?: unknown })?.Title);
+      const onPage = await firstPageTitle(doc).catch(() => '');
+      const { info, metadata } = await doc.getMetadata().catch(() => ({ info: null, metadata: null }));
+      const inMeta = plausibleTitle(metadata?.get('dc:title')) || plausibleTitle((info as { Title?: unknown })?.Title);
+      return pickTitle(onPage, inMeta);
     } finally {
       await task.destroy();
     }
   } catch {
     return '';
   }
+}
+
+async function firstPageTitle(doc: import('pdfjs-dist').PDFDocumentProxy): Promise<string> {
+  const page = await doc.getPage(1);
+  const [, y0, , y1] = page.view;
+  const content = await page.getTextContent();
+  const pieces: TextPiece[] = [];
+  for (const item of content.items) {
+    if (!('str' in item) || !item.str) continue;
+    const [a, b, c, d, x, y] = item.transform as number[];
+    pieces.push({
+      text: item.str,
+      x,
+      y: y - y0,
+      width: item.width,
+      size: Math.hypot(c, d),
+      upright: a > 0 && Math.abs(b) < 1e-3 && Math.abs(c) < 1e-3,
+    });
+  }
+  return titleFromFirstPage(pieces, y1 - y0);
 }
