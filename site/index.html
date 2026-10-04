@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carrel</title>
+  <meta name="description" content="A quiet study desk for reading research papers.">
+  <link rel="icon" href="icon.png">
+  <style>
+    :root { --bg: #faf6ee; --text: #2a2723; --muted: #6a645b; --line: #e6dfd0; --accent: #00356b; --code: #f1ebdf; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #211f1b; --text: #ebe5da; --muted: #b0a899; --line: #3a362f; --accent: #8fb3e6; --code: #2a2723; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    main { max-width: 680px; margin: 0 auto; padding: 32px 16px 64px; }
+    .banner { width: 100%; border-radius: 14px; display: block; }
+    h2 { font-size: 20px; margin: 40px 0 8px; }
+    p, li { color: var(--muted); }
+    strong { color: var(--text); }
+    ol { padding-left: 20px; }
+    .cmd { display: flex; gap: 8px; align-items: stretch; margin: 16px 0 8px; }
+    .cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 12px 14px; border-radius: 10px; background: var(--code); border: 1px solid var(--line); font: 14px/1.4 ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); }
+    .cmd button { flex: none; border: 0; border-radius: 10px; padding: 0 18px; background: var(--accent); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer; }
+    a { color: var(--accent); }
+    footer { margin-top: 48px; font-size: 14px; color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <img class="banner" src="banner.png" alt="Carrel: a quiet study desk for reading research papers">
+
+  <p>Carrel walks you through a paper one step at a time, keeps your notes beside the PDF, and brings the paper back later so you remember it. Your notes are plain files on your computer.</p>
+
+  <h2>Get Carrel</h2>
+  <ol>
+    <li>Open <strong>Terminal</strong>: press <strong>⌘ Space</strong>, type <strong>Terminal</strong>, and press <strong>Return</strong>.</li>
+    <li>Copy this line, paste it into Terminal, and press <strong>Return</strong>:</li>
+  </ol>
+  <div class="cmd">
+    <code id="cmd">curl -fsSL radyko.github.io/carrel/install | sh</code>
+    <button type="button" id="copy">Copy</button>
+  </div>
+  <p>A minute later Carrel opens. It's now in your Applications folder like any other app, so you won't need Terminal again. Nothing else to install.</p>
+
+  <h2>Updates</h2>
+  <p>When there's a new version, <strong>Update ready</strong> appears at the bottom of Carrel's sidebar. Click it, then <strong>Update</strong>. Your papers and notes stay as they are.</p>
+
+  <h2>Uninstall</h2>
+  <p>Move Carrel from Applications to the Trash. Your notes stay in the <strong>Carrel</strong> folder in your home folder until you delete it.</p>
+
+  <footer>Works on macOS (Apple silicon and Intel) and Linux. · <a href="https://github.com/Radyko/carrel">Carrel on GitHub</a></footer>
+</main>
+<script>
+  document.getElementById('copy').addEventListener('click', async (e) => {
+    try { await navigator.clipboard.writeText(document.getElementById('cmd').textContent); e.target.textContent = 'Copied'; }
+    catch { getSelection().selectAllChildren(document.getElementById('cmd')); }
+    setTimeout(() => (e.target.textContent = 'Copy'), 1500);
+  });
+</script>
+</body>
+</html>

@@ -8,39 +8,29 @@ plain text files on your computer, and they belong to you.
 
 ## Get Carrel
 
-You need **Node.js** first. It's free. Get it from [nodejs.org](https://nodejs.org)
-(choose the LTS version), or with Homebrew run `brew install node`.
+1. Open **Terminal**: press **⌘ Space**, type **Terminal**, and press **Return**.
+2. Paste this line and press **Return**:
 
-Then open **Terminal** and type:
+   ```sh
+   curl -fsSL radyko.github.io/carrel/install | sh
+   ```
 
-```sh
-npx radyko/carrel
-```
+A minute later Carrel opens. It's now in your Applications folder like any
+other app: open it from Launchpad, Spotlight or the Dock. There's nothing else
+to install, and you won't need Terminal again.
 
-Press Return. If it asks "Ok to proceed?", type `y`. A minute later Carrel opens.
+Works on macOS (Apple silicon and Intel) and Linux. On Linux it shows up in
+your applications menu. The same steps are on
+[radyko.github.io/carrel](https://radyko.github.io/carrel), with a Copy button.
 
-<sub>On a Mac without developer tools, a window may offer to install them. Click
-Install, or skip it and run `npx @radyko/carrel` instead. Both get you the same
-app.</sub>
-
-That's it. Carrel is now in your Applications folder like any other app. Open
-it from Launchpad, Spotlight or the Dock. You won't need Terminal again
-day to day.
-
-Works on macOS and Linux. On Linux it shows up in your applications menu.
+<sub>Developers can also run `npx radyko/carrel`, which needs Node.js.</sub>
 
 ## Update
 
 When there's a new version, **Update ready** appears at the bottom of the
 sidebar within about 15 minutes of its release. Click it, then **Update**.
-Carrel closes, updates itself, and opens again. Your papers and notes stay exactly as they are.
-
-You can also update from Terminal at any time, with the same command you
-used to install:
-
-```sh
-npx radyko/carrel
-```
+Carrel closes, updates itself, and opens again. Your papers and notes stay
+exactly as they are. Running the install line again also updates Carrel.
 
 To see which version you have, open **Settings**. The version number is under
 the title.
@@ -84,8 +74,8 @@ Removing a paper moves it to the Trash.
 
 ## If something goes wrong
 
-- **"command not found: npx"**: Node.js isn't installed yet. See
-  [Get Carrel](#get-carrel).
+- **The install line says the download didn't work**: check your internet
+  connection and run it again.
 - **Your papers seem to be missing after an update**: they aren't gone; they
   are still in the `Carrel` folder. Quit Carrel completely (⌘Q, or right-click
   its Dock icon and choose Quit), then open it again. This could happen with

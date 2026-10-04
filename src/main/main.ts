@@ -17,7 +17,6 @@ const appRoot = path.join(__dirname, '..', '..', '..');
 const rendererDir = path.join(appRoot, 'dist', 'renderer');
 const defaultGuidePath = path.join(appRoot, 'guide', 'default-guide.yaml');
 const iconPath = path.join(appRoot, 'assets', 'icon.png');
-const packageName = (JSON.parse(fsSync.readFileSync(path.join(appRoot, 'package.json'), 'utf8')) as { name: string }).name;
 
 protocol.registerSchemesAsPrivileged([
   { scheme: APP_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -216,8 +215,8 @@ function registerIpc(): void {
     await saveSettings(settings);
     return state();
   });
-  ipcMain.handle('update:check', () => checkForUpdate(packageName));
-  ipcMain.handle('update:install', () => installUpdate(packageName));
+  ipcMain.handle('update:check', () => checkForUpdate());
+  ipcMain.handle('update:install', () => installUpdate());
   ipcMain.handle('shell:open-link', async (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) await shell.openExternal(url);
   });

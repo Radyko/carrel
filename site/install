@@ -1,0 +1,9 @@
+#!/bin/sh
+# Carrel's installer. This short address fetches the real installer from the
+# latest release and runs it:
+#   https://github.com/Radyko/carrel/blob/main/scripts/install.sh
+set -eu
+f=$(mktemp "${TMPDIR:-/tmp}/carrel-install.XXXXXX")
+trap 'rm -f "$f"' EXIT INT TERM
+curl -fsSL --retry 3 -o "$f" https://github.com/Radyko/carrel/releases/latest/download/install.sh
+sh "$f"
