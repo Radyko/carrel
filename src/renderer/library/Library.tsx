@@ -230,8 +230,8 @@ export function Library(props: Props) {
               Settings
             </button>
             {props.updateVersion && (
-              <button className="update-pill" onClick={props.onSettings} title="See what’s new and update">
-                Update to {props.updateVersion}
+              <button className="update-pill" onClick={props.onSettings} title={`Carrel ${props.updateVersion} is ready`}>
+                Update ready
               </button>
             )}
           </div>
@@ -247,8 +247,8 @@ export function Library(props: Props) {
           </button>
           <div className="spacer" />
           {!props.sidebarOpen && props.updateVersion && (
-            <button className="update-pill" onClick={props.onSettings} title="See what’s new and update">
-              Update to {props.updateVersion}
+            <button className="update-pill" onClick={props.onSettings} title={`Carrel ${props.updateVersion} is ready`}>
+              Update ready
             </button>
           )}
           {ui.filter.kind === 'group' && ui.filter.id === 'due' && dueIds.length > 0 && (

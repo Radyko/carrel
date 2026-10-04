@@ -29,6 +29,9 @@ interface PendingPdf {
   data: Uint8Array;
 }
 
+const SECOND = 1000;
+const MINUTE = 60 * SECOND;
+
 export function App() {
   const [state, setState] = useState<AppState | null>(null);
   const [papers, setPapers] = useState<PaperSummary[]>([]);
@@ -126,27 +129,36 @@ export function App() {
     rememberLook({ tone, accent });
   }, [tone, accent]);
 
-  // Look for a new version at start, whenever Settings opens, and when the
-  // window comes back into focus (at most hourly; on a Mac, Carrel can stay
-  // open for days).
+  // Look for a new version at start, every 15 minutes while Carrel is open,
+  // and at the big moments: coming back to the window, opening the sidebar,
+  // returning to the library, and opening Settings. Each check is one tiny
+  // request to the npm registry; quick repeats within 30 seconds are skipped.
   const ready = state !== null;
   const lastCheck = useRef(0);
+  const liveRef = useRef(true);
+  const checkUpdate = useCallback((minAge: number) => {
+    if (Date.now() - lastCheck.current < minAge) return;
+    lastCheck.current = Date.now();
+    void api
+      .checkForUpdate()
+      .then((u) => liveRef.current && setUpdate((prev) => (prev?.state === 'available' && u.state === 'offline' ? prev : u)));
+  }, []);
   useEffect(() => {
     if (!ready) return;
-    let live = true;
-    const check = (force: boolean) => {
-      if (!force && Date.now() - lastCheck.current < 60 * 60 * 1000) return;
-      lastCheck.current = Date.now();
-      void api.checkForUpdate().then((u) => live && setUpdate((prev) => (prev?.state === 'available' && u.state === 'offline' ? prev : u)));
-    };
-    check(settingsOpen || lastCheck.current === 0);
-    const onFocus = () => check(false);
+    liveRef.current = true;
+    const onFocus = () => checkUpdate(30 * SECOND);
+    const timer = setInterval(() => checkUpdate(0), 15 * MINUTE);
     window.addEventListener('focus', onFocus);
     return () => {
-      live = false;
+      liveRef.current = false;
+      clearInterval(timer);
       window.removeEventListener('focus', onFocus);
     };
-  }, [ready, settingsOpen]);
+  }, [ready, checkUpdate]);
+  const backInLibrary = view.screen === 'library';
+  useEffect(() => {
+    if (ready) checkUpdate(settingsOpen ? 0 : 30 * SECOND);
+  }, [ready, settingsOpen, sidebarOpen, backInLibrary, checkUpdate]);
 
   // Save anything pending before the window closes.
   useEffect(() => api.onFlush(async () => void (await readerRef.current?.flush())), []);

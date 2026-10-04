@@ -31,10 +31,9 @@ Works on macOS and Linux. On Linux it shows up in your applications menu.
 
 ## Update
 
-When there's a new version, **Update to …** appears at the bottom of the
-sidebar within an hour or so of its release (Settings always checks right
-away). Click it, then **Update**. Carrel closes, updates itself, and opens
-again. Your papers and notes stay exactly as they are.
+When there's a new version, **Update ready** appears at the bottom of the
+sidebar within about 15 minutes of its release. Click it, then **Update**.
+Carrel closes, updates itself, and opens again. Your papers and notes stay exactly as they are.
 
 You can also update from Terminal at any time, with the same command you
 used to install:

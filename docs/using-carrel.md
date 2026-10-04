@@ -86,12 +86,14 @@ Open Settings from the bottom of the sidebar (or ⌘,).
 
 ## Updating
 
-Carrel looks for a new version when it opens, when you open Settings, and
-when you come back to its window (at most once an hour). When one is out,
-**Update to …** appears at the bottom of the sidebar (or in the toolbar when
+Carrel looks for a new version when it opens, every 15 minutes while it's
+open, and whenever you come back to its window, open the sidebar, return to
+the library or open Settings. When one is out,
+**Update ready** appears at the bottom of the sidebar (or in the toolbar when
 the sidebar is hidden), and Settings shows an **Update** button. Carrel closes, updates
 itself, and opens again in about a minute. Your papers and notes aren't
-touched.
+touched. Each update goes straight to the newest version. If one ever
+doesn't finish, Settings says so and shows where the details are.
 
 From Terminal, this always installs the latest version:
 

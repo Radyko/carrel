@@ -46,9 +46,18 @@ export async function checkForUpdate(packageName: string): Promise<UpdateStatus>
 
 const quote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
+function pendingPath(): string {
+  return path.join(app.getPath('userData'), 'update-pending.json');
+}
+
+function logPath(): string {
+  return path.join(app.getPath('logs'), 'update.log');
+}
+
 /**
  * Starts the update and quits. The update runs after Carrel has gone and
- * opens the new version; if it fails, it opens this version again.
+ * opens the new version; if it fails, it opens this version again, and
+ * updateOutcome() says so at the next start.
  */
 export async function installUpdate(packageName: string): Promise<UpdateStart> {
   if (installKind() !== 'app') return { ok: false, reason: 'source' };
@@ -56,15 +65,28 @@ export async function installUpdate(packageName: string): Promise<UpdateStart> {
   const node = await findNode();
   if (!node) return { ok: false, reason: 'npx' };
 
-  const log = path.join(app.getPath('logs'), 'update.log');
+  // Install the exact version the check found. Right after a release, npm can
+  // still hand out the previous one as "latest" for a few minutes, which would
+  // reinstall the same version; an exact version waits for npm instead.
+  const status = await checkForUpdate(packageName);
+  const target = status.state === 'available' ? status.latest : 'latest';
+
+  const log = logPath();
   fs.mkdirSync(path.dirname(log), { recursive: true });
-  fs.writeFileSync(log, `Updating Carrel ${app.getVersion()}, ${new Date().toISOString()}, with ${node.npx}\n`);
+  fs.writeFileSync(log, `Updating Carrel ${app.getVersion()} to ${target}, ${new Date().toISOString()}, with ${node.npx}\n`);
+  fs.writeFileSync(pendingPath(), JSON.stringify({ from: app.getVersion(), to: target, at: Date.now() }));
   const reopen =
     process.platform === 'darwin'
       ? `open ${quote(path.resolve(process.execPath, '..', '..', '..'))}`
       : `${quote(process.execPath)} >/dev/null 2>&1 &`;
-  // Wait for this copy to quit, then update; npx opens the new version.
-  const script = `sleep 2; ${quote(node.npx)} --yes --prefer-online ${packageName}@latest >>${quote(log)} 2>&1 || ${reopen}`;
+  // Wait for this copy to quit, then update; npx opens the new version. If
+  // npm doesn't have the new version yet, try again a little later.
+  const npx = `${quote(node.npx)} --yes --prefer-online ${packageName}@${target} >>${quote(log)} 2>&1`;
+  const script = [
+    'sleep 2',
+    `for wait in 20 40 0; do ${npx} && exit 0; [ $wait = 0 ] && break; echo "Trying again in $wait seconds" >>${quote(log)}; sleep $wait; done`,
+    reopen,
+  ].join('\n');
   const child = spawn('/bin/sh', ['-c', script], {
     detached: true,
     stdio: 'ignore',
@@ -73,4 +95,22 @@ export async function installUpdate(packageName: string): Promise<UpdateStart> {
   child.unref();
   setTimeout(() => app.quit(), 200);
   return { ok: true };
+}
+
+/**
+ * After an update, whether it worked: null when it did (or none was started),
+ * otherwise a sentence saying it didn't. Reading it clears it.
+ */
+export function updateOutcome(): string | null {
+  try {
+    const pending = JSON.parse(fs.readFileSync(pendingPath(), 'utf8')) as { from?: string; to?: string; at?: number };
+    fs.rmSync(pendingPath(), { force: true });
+    const recent = typeof pending.at === 'number' && Date.now() - pending.at < 24 * 60 * 60 * 1000;
+    const changed = pending.from !== app.getVersion();
+    const reached = typeof pending.to === 'string' && pending.to !== 'latest' && compareVersions(app.getVersion(), pending.to) >= 0;
+    if (!recent || changed || reached) return null;
+    return `The update to ${pending.to === 'latest' ? 'the newest version' : pending.to} didn’t finish. What happened is in ${logPath()}.`;
+  } catch {
+    return null;
+  }
 }
