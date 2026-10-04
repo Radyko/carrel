@@ -2,7 +2,7 @@ import type { Guide, GuideQuestion, PassStage, PurposeStage } from '../../shared
 import type { Highlight } from '../../shared/highlights';
 import type { OtherNote, PaperMeta, ReviewEntry } from '../../shared/paper';
 import { suggestedPass } from '../../shared/progress';
-import { AutoTextarea, ChecklistField, Rating, TermsField } from './fields';
+import { AutoTextarea, ChecklistField, TermsField } from './fields';
 import { Timer } from './Timer';
 
 function Question({
@@ -247,22 +247,18 @@ export function PassTab(props: {
 export function SharedNotes({
   guide,
   notes,
-  rating,
   other,
   reviews,
   onNotes,
-  onRating,
   highlights,
   activeHighlightId,
   onOpenHighlight,
 }: {
   guide: Guide;
   notes: string;
-  rating: number | null;
   other: OtherNote[];
   reviews: ReviewEntry[];
   onNotes: (v: string) => void;
-  onRating: (v: number | null) => void;
   highlights: Highlight[];
   activeHighlightId: string | null;
   onOpenHighlight: (h: Highlight) => void;
@@ -295,7 +291,6 @@ export function SharedNotes({
           <label className="q-label" htmlFor="free-notes">
             {guide.notesHeading}
           </label>
-          <Rating value={rating} onChange={onRating} />
         </div>
         <p className="q-help">Anything that doesn’t fit the questions.</p>
         <AutoTextarea id="free-notes" minRows={3} value={notes} onChange={(e) => onNotes(e.target.value)} />

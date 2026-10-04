@@ -39,7 +39,6 @@ describe('library view', () => {
       sortPapers(papers, { key, dir }).map((p) => p.id);
     expect(ids('year', 'asc')).toEqual(['b', 'a', 'c']);
     expect(ids('year', 'desc')).toEqual(['a', 'b', 'c']);
-    expect(ids('rating', 'desc')).toEqual(['a', 'c', 'b']);
     expect(ids('title', 'asc')).toEqual(['a', 'c', 'b']);
   });
 });

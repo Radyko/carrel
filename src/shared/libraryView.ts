@@ -20,7 +20,7 @@ export type Filter =
   | { kind: 'topic'; value: string }
   | { kind: 'collection'; value: string };
 
-export type SortKey = 'title' | 'author' | 'year' | 'topics' | 'pass' | 'rating' | 'lastWorked';
+export type SortKey = 'title' | 'author' | 'year' | 'topics' | 'pass' | 'lastWorked';
 export interface Sort {
   key: SortKey;
   dir: 'asc' | 'desc';
@@ -71,8 +71,6 @@ function sortValue(p: PaperSummary, key: SortKey): string | number | null {
       return m.topics.join(', ') || null;
     case 'pass':
       return m.furthestPass;
-    case 'rating':
-      return m.rating;
     case 'lastWorked':
       return m.lastWorked ?? m.added;
   }

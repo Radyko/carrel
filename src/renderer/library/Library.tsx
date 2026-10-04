@@ -12,7 +12,7 @@ import {
 } from '../../shared/libraryView';
 import type { PaperSummary } from '../../shared/paper';
 import { isDue } from '../../shared/review';
-import { friendlyDate, stars } from '../format';
+import { friendlyDate } from '../format';
 import { Preview } from './Preview';
 
 /** A collection name being typed in the sidebar: a new one, or a rename. */
@@ -64,7 +64,6 @@ const COLUMNS: { key: SortKey; label: string; width: string; className?: string 
   { key: 'year', label: 'Year', width: '56px', className: 'num' },
   { key: 'topics', label: 'Topics', width: '14%' },
   { key: 'pass', label: 'Pass', width: '54px' },
-  { key: 'rating', label: 'Rating', width: '72px' },
   { key: 'lastWorked', label: 'Last worked', width: '108px' },
 ];
 
@@ -73,7 +72,6 @@ const OPTIONAL: Partial<Record<SortKey, (p: PaperSummary) => boolean>> = {
   author: (p) => p.meta.authors.length > 0,
   year: (p) => p.meta.year != null,
   topics: (p) => p.meta.topics.length > 0,
-  rating: (p) => p.meta.rating != null,
 };
 
 function PassDots({ pass, total }: { pass: number; total: number }) {
@@ -373,12 +371,6 @@ function Cell({ column, paper: p, passes }: { column: SortKey; paper: PaperSumma
       return (
         <td>
           <PassDots pass={p.meta.furthestPass} total={passes} />
-        </td>
-      );
-    case 'rating':
-      return (
-        <td>
-          <span className="stars">{stars(p.meta.rating)}</span>
         </td>
       );
     case 'lastWorked':

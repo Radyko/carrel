@@ -173,25 +173,3 @@ function ExtraText({ text, onChange }: { text: string; onChange: (v: string) => 
     </div>
   );
 }
-
-export function Rating({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const shown = hover ?? value ?? 0;
-  return (
-    <div className="rating" onMouseLeave={() => setHover(null)} role="radiogroup" aria-label="Rating">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          role="radio"
-          aria-checked={value === n}
-          className={`star${n <= shown ? ' on' : ''}`}
-          title={value === n ? 'Click again to clear' : `${n} of 5`}
-          onMouseEnter={() => setHover(n)}
-          onClick={() => onChange(value === n ? null : n)}
-        >
-          ★
-        </button>
-      ))}
-    </div>
-  );
-}

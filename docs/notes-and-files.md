@@ -34,7 +34,6 @@ furthest_pass: 2
 decisions:
   pass1: continue
   pass2: done
-rating: 4
 added: 2026-10-03
 last_worked: 2026-10-03T21:40
 time_spent_seconds:

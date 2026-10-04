@@ -3,7 +3,7 @@ import type { PaperSummary } from '../../shared/paper';
 import { summaryFields } from '../../shared/guide';
 import { describeInterval, isDue } from '../../shared/review';
 import { api } from '../api';
-import { duration, friendlyDate, fullDate, stars } from '../format';
+import { duration, friendlyDate, fullDate } from '../format';
 
 const STATUS_LABEL: Record<string, string> = {
   'to-read': 'To read',
@@ -74,12 +74,6 @@ export function Preview({ paper, guide, today, isMac, ...on }: Props) {
           <>
             <dt>Purpose</dt>
             <dd>{purpose.label}</dd>
-          </>
-        )}
-        {m.rating && (
-          <>
-            <dt>Rating</dt>
-            <dd className="stars">{stars(m.rating)}</dd>
           </>
         )}
         {m.topics.length > 0 && (
