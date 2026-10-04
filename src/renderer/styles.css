@@ -1,85 +1,108 @@
-/* Carrel: quiet, native-feeling, one accent colour. */
+/* Carrel: quiet, native-feeling, one accent colour.
+
+   Colours come in light and dark pairs (light-dark() picks one from the
+   color-scheme, which follows the system or the Appearance setting). The
+   background tone and the accent can be changed in Settings: a tone swaps the
+   neutral colours below, and every accent shade is derived from a single
+   colour, --accent-base, in OKLCH so any colour someone picks keeps enough
+   contrast. */
 
 :root {
   color-scheme: light dark;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  --bg: #ffffff;
-  --bg-sidebar: #f4f3f0;
-  --bg-subtle: #f7f7f5;
-  --bg-field: #ffffff;
-  --bg-hover: rgba(0, 0, 0, 0.04);
-  --bg-selected: rgba(46, 125, 91, 0.12);
-  --bg-selected-strong: #2e7d5b;
-  --text: #1d1d1f;
-  --text-2: #5f5f64;
-  --text-3: #8e8e93;
-  --line: rgba(0, 0, 0, 0.09);
-  --line-strong: rgba(0, 0, 0, 0.16);
-  --accent: #2e7d5b;
-  --accent-text: #23664a;
-  --accent-soft: rgba(46, 125, 91, 0.1);
-  --on-accent: #ffffff;
-  --warn-bg: #fdf5e6;
-  --warn-line: #ecd6a8;
-  --warn-text: #6b4d12;
-  --pdf-bg: #e9e8e5;
-  --shadow: 0 10px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  /* Tone: Paper, the default. */
+  --bg: light-dark(#ffffff, #1e1e1f);
+  --bg-sidebar: light-dark(#f4f3f0, #262627);
+  --bg-subtle: light-dark(#f7f7f5, #232324);
+  --bg-field: light-dark(#ffffff, #2a2a2b);
+  --text: light-dark(#1d1d1f, #e8e8e6);
+  --text-2: light-dark(#5f5f64, #a8a8ad);
+  --text-3: light-dark(#8e8e93, #77777c);
+  --pdf-bg: light-dark(#e9e8e5, #161617);
+  /* Multiplied over PDF pages, so white paper takes on the tone. */
+  --page-tint: #ffffff;
+
+  /* Accent. Light mode keeps it dark enough for white text on it; dark mode
+     keeps it light enough to read on the dark background. */
+  --accent-base: #2e7d5b;
+  --accent: light-dark(
+    oklch(from var(--accent-base) clamp(0.36, l, 0.52) c h),
+    oklch(from var(--accent-base) clamp(0.7, l, 0.8) min(c, 0.17) h)
+  );
+  --accent-text: light-dark(
+    oklch(from var(--accent-base) clamp(0.3, l - 0.06, 0.46) c h),
+    oklch(from var(--accent-base) clamp(0.76, l + 0.06, 0.86) min(c, 0.15) h)
+  );
+  --accent-soft: light-dark(
+    color-mix(in oklab, var(--accent) 10%, transparent),
+    color-mix(in oklab, var(--accent) 15%, transparent)
+  );
+  --on-accent: light-dark(#ffffff, oklch(from var(--accent-base) 0.2 calc(c * 0.5) h));
+  --bg-selected: light-dark(
+    color-mix(in oklab, var(--accent) 13%, transparent),
+    color-mix(in oklab, var(--accent) 20%, transparent)
+  );
+  --bg-selected-strong: var(--accent);
+
+  --bg-hover: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
+  --line: light-dark(rgba(0, 0, 0, 0.09), rgba(255, 255, 255, 0.08));
+  --line-strong: light-dark(rgba(0, 0, 0, 0.16), rgba(255, 255, 255, 0.16));
+  --warn-bg: light-dark(#fdf5e6, #3a3020);
+  --warn-line: light-dark(#ecd6a8, #5c4a26);
+  --warn-text: light-dark(#6b4d12, #ecd6a8);
+  --shadow: 0 10px 40px light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.5)),
+    0 0 0 1px light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.08));
   --radius: 7px;
   --toolbar-h: 52px;
 }
 
-/* Dark colours: when the system is dark (unless Light is chosen in Settings),
-   or when Dark is chosen. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #1e1e1f;
-    --bg-sidebar: #262627;
-    --bg-subtle: #232324;
-    --bg-field: #2a2a2b;
-    --bg-hover: rgba(255, 255, 255, 0.05);
-    --bg-selected: rgba(95, 179, 140, 0.18);
-    --bg-selected-strong: #3d8f6a;
-    --text: #e8e8e6;
-    --text-2: #a8a8ad;
-    --text-3: #77777c;
-    --line: rgba(255, 255, 255, 0.08);
-    --line-strong: rgba(255, 255, 255, 0.16);
-    --accent: #5fb38c;
-    --accent-text: #7cc4a1;
-    --accent-soft: rgba(95, 179, 140, 0.14);
-    --on-accent: #0f1f17;
-    --warn-bg: #3a3020;
-    --warn-line: #5c4a26;
-    --warn-text: #ecd6a8;
-    --pdf-bg: #161617;
-    --shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  }
+:root[data-tone='linen'] {
+  --bg: light-dark(#faf6ee, #211f1b);
+  --bg-sidebar: light-dark(#f1ebdf, #2a2723);
+  --bg-subtle: light-dark(#f6f1e6, #25221e);
+  --bg-field: light-dark(#fffdf9, #2e2b26);
+  --text: light-dark(#2a2723, #ebe5da);
+  --text-2: light-dark(#6a645b, #b0a899);
+  --text-3: light-dark(#9a9387, #807869);
+  --pdf-bg: light-dark(#e7e0d2, #181613);
+  --page-tint: light-dark(#fbf7ee, #ffffff);
 }
-:root[data-theme='dark'] {
-  --bg: #1e1e1f;
-  --bg-sidebar: #262627;
-  --bg-subtle: #232324;
-  --bg-field: #2a2a2b;
-  --bg-hover: rgba(255, 255, 255, 0.05);
-  --bg-selected: rgba(95, 179, 140, 0.18);
-  --bg-selected-strong: #3d8f6a;
-  --text: #e8e8e6;
-  --text-2: #a8a8ad;
-  --text-3: #77777c;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --accent: #5fb38c;
-  --accent-text: #7cc4a1;
-  --accent-soft: rgba(95, 179, 140, 0.14);
-  --on-accent: #0f1f17;
-  --warn-bg: #3a3020;
-  --warn-line: #5c4a26;
-  --warn-text: #ecd6a8;
-  --pdf-bg: #161617;
-  --shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+:root[data-tone='sepia'] {
+  --bg: light-dark(#f3ead7, #26211a);
+  --bg-sidebar: light-dark(#eadfc6, #2f291f);
+  --bg-subtle: light-dark(#efe5cf, #2a241c);
+  --bg-field: light-dark(#faf4e6, #332c22);
+  --text: light-dark(#3b2f22, #eadcc3);
+  --text-2: light-dark(#6e5f4b, #b9a888);
+  --text-3: light-dark(#9c8b73, #877760);
+  --pdf-bg: light-dark(#ddd1b6, #1b1712);
+  --page-tint: light-dark(#f5eddb, #ffffff);
 }
+:root[data-tone='mist'] {
+  --bg: light-dark(#f5f7fa, #1b1e23);
+  --bg-sidebar: light-dark(#e9edf2, #22262c);
+  --bg-subtle: light-dark(#eff2f6, #1f2227);
+  --bg-field: light-dark(#ffffff, #272b31);
+  --text: light-dark(#1b1f24, #e5e8ec);
+  --text-2: light-dark(#5a626d, #a3aab4);
+  --text-3: light-dark(#8b939e, #747b85);
+  --pdf-bg: light-dark(#e2e6ec, #14161a);
+}
+:root[data-tone='sage'] {
+  --bg: light-dark(#f3f5ef, #1c201c);
+  --bg-sidebar: light-dark(#e7ebe1, #232823);
+  --bg-subtle: light-dark(#eef1e9, #1f231f);
+  --bg-field: light-dark(#fbfcf9, #282d28);
+  --text: light-dark(#1f231d, #e3e8e1);
+  --text-2: light-dark(#5d6558, #a6afa3);
+  --text-3: light-dark(#8d9588, #768073);
+  --pdf-bg: light-dark(#dfe4d8, #151815);
+  --page-tint: light-dark(#f7f9f3, #ffffff);
+}
+
+/* Light or Dark from Settings wins over the system appearance. */
 :root[data-theme='light'] {
   color-scheme: light;
 }
@@ -361,8 +384,25 @@ textarea.field {
   font-size: 11px;
 }
 .sidebar-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   padding: 8px 10px 12px;
   border-top: 1px solid var(--line);
+}
+.update-pill {
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  cursor: default;
+}
+.update-pill:hover {
+  background: var(--bg-selected);
 }
 
 .list-pane {
@@ -631,10 +671,7 @@ button.chip:hover {
   gap: 8px;
   margin-top: 20px;
 }
-.settings-row {
-  margin-bottom: 18px;
-}
-.settings-row .path {
+.settings-group .path {
   font-family: var(--mono);
   font-size: 12px;
   padding: 6px 8px;
@@ -645,7 +682,7 @@ button.chip:hover {
   overflow-wrap: anywhere;
   user-select: text;
 }
-.settings-row .row-buttons {
+.settings-group .row-buttons {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
@@ -808,6 +845,15 @@ body.resizing .notes-side {
   border: none;
   margin: 0 auto 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+/* Warm tones tint the white of the page; the ink stays as it is. */
+.pdf-scroll .pdfViewer .page .canvasWrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--page-tint);
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 .pdf-error {
   padding: 40px;
@@ -1492,4 +1538,129 @@ textarea.hl-card-note {
   text-overflow: ellipsis;
   max-width: 220px;
   -webkit-app-region: drag;
+}
+
+/* ---------- Settings: look and updates ---------- */
+
+.settings-group {
+  padding: 14px 0 4px;
+  border-top: 1px solid var(--line);
+}
+.settings-group h3,
+.settings-group > summary {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.settings-group > summary {
+  margin-bottom: 4px;
+  cursor: default;
+}
+.settings-group[open] > summary {
+  margin-bottom: 10px;
+}
+.settings-group .label.spaced {
+  margin-top: 14px;
+}
+.settings-group p {
+  margin: 0 0 8px;
+}
+.settings-line {
+  margin-bottom: 14px;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tone-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: default;
+  color: var(--text-2);
+  font-size: 11px;
+}
+.tone-chip {
+  width: 52px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--light) 0 58%, var(--dark) 58% 100%);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: transform 0.12s ease;
+}
+.tone-swatch:hover .tone-chip {
+  transform: translateY(-1px);
+}
+.tone-swatch.on .tone-chip {
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+.tone-swatch.on {
+  color: var(--text);
+  font-weight: 500;
+}
+.accent-dot {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  background: var(--dot);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  cursor: default;
+  transition: transform 0.12s ease;
+}
+.accent-dot:hover {
+  transform: scale(1.12);
+}
+.accent-dot.on {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--dot);
+}
+/* Any colour: a little colour wheel that opens the system colour picker. */
+.accent-dot.custom {
+  background: conic-gradient(#e5484d, #f5a524, #f2d94e, #46a758, #12a594, #3e63dd, #8e4ec6, #d6409f, #e5484d);
+}
+.accent-dot.custom.on {
+  background:
+    radial-gradient(circle, var(--dot) 0 6px, transparent 6.5px),
+    conic-gradient(#e5484d, #f5a524, #f2d94e, #46a758, #12a594, #3e63dd, #8e4ec6, #d6409f, #e5484d);
+}
+.accent-dot.custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+.command {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+.command code {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.update-box p {
+  margin: 0 0 6px;
+}
+.update-box .btn {
+  margin-top: 4px;
 }

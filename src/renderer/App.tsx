@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AppState, MenuAction } from '../shared/api';
+import type { AppState, MenuAction, UpdateStatus } from '../shared/api';
 import { localDate } from '../shared/dates';
 import { distinct, same, sortPapers } from '../shared/libraryView';
 import type { PaperMeta, PaperSummary } from '../shared/paper';
@@ -7,6 +7,7 @@ import { isDue } from '../shared/review';
 import { api, errorText } from './api';
 import { Library, type LibraryUi, type Naming } from './library/Library';
 import { PaperForm } from './library/PaperForm';
+import { applyLook, rememberLook } from './look';
 import { pdfTitle } from './pdf';
 import { Reader, type ReaderHandle } from './reader/Reader';
 import { ReviewScreen } from './review/ReviewScreen';
@@ -44,6 +45,7 @@ export function App() {
   const [form, setForm] = useState<FormState | null>(null);
   const [pdfQueue, setPdfQueue] = useState<PendingPdf[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [update, setUpdate] = useState<UpdateStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
@@ -75,7 +77,7 @@ export function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [list, names] = await Promise.all([api.listPapers(), api.listCollections()]);
+      const [list, names] = await Promise.all([api.listPapers(), api.listCollections().catch(() => [] as string[])]);
       setPapers(list);
       setCollections(names);
       setLoaded(true);
@@ -114,6 +116,26 @@ export function App() {
     if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     else delete document.documentElement.dataset.theme;
   }, [state?.appearance]);
+
+  // The background tone and accent colour from Settings.
+  const tone = state?.look.tone;
+  const accent = state?.look.accent;
+  useEffect(() => {
+    if (!tone || !accent) return;
+    applyLook({ tone, accent });
+    rememberLook({ tone, accent });
+  }, [tone, accent]);
+
+  // Look for a new version at start, and again whenever Settings opens.
+  const ready = state !== null;
+  useEffect(() => {
+    if (!ready || (!settingsOpen && update) || update?.state === 'available') return;
+    let live = true;
+    void api.checkForUpdate().then((u) => live && setUpdate(u));
+    return () => {
+      live = false;
+    };
+  }, [ready, settingsOpen]);
 
   // Save anything pending before the window closes.
   useEffect(() => api.onFlush(async () => void (await readerRef.current?.flush())), []);
@@ -524,6 +546,7 @@ export function App() {
           onTrash={trash}
           onContextMenu={contextMenu}
           onSettings={() => setSettingsOpen(true)}
+          updateVersion={update?.state === 'available' && state.install === 'app' ? update.latest : null}
           sidebarOpen={sidebarOpen}
           onToggleSidebar={toggleSidebar}
         />
@@ -574,6 +597,12 @@ export function App() {
           onRevealGuide={() => api.revealGuide()}
           onRestoreGuide={restoreGuide}
           onAppearance={(appearance) => api.setAppearance(appearance).then(setState, report)}
+          onLook={(look) => api.setLook(look).then(setState, report)}
+          update={update}
+          onUpdate={async () => {
+            const result = await api.installUpdate();
+            return result.ok ? null : result.reason;
+          }}
           onClose={() => setSettingsOpen(false)}
         />
       )}

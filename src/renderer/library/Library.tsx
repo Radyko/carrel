@@ -52,6 +52,8 @@ interface Props {
   onTrash: (id: string) => void;
   onContextMenu: (id: string) => void;
   onSettings: () => void;
+  /** A newer version that can be installed, if there is one. */
+  updateVersion: string | null;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
 }
@@ -213,6 +215,11 @@ export function Library(props: Props) {
             <button className="btn quiet small" onClick={props.onSettings}>
               Settings
             </button>
+            {props.updateVersion && (
+              <button className="update-pill" onClick={props.onSettings} title="See what’s new and update">
+                Update to {props.updateVersion}
+              </button>
+            )}
           </div>
         </aside>
       )}

@@ -11,8 +11,24 @@ npm run install-app  # build and install this checkout as Carrel.app
 
 The `carrel` command (`bin/carrel.js`) installs Carrel as an app on first run
 and opens it; later runs open the installed app, updating it first when the
-package is newer. `--here` runs straight from the package instead, and a source
-checkout (one with a `src` folder, as after `npm link`) always runs itself.
+package is newer (never downgrading it). Because npx can reuse a copy it
+downloaded earlier, the command first asks the npm registry for the latest
+version and hands over to `npx @radyko/carrel@latest` if this copy is older.
+`--here` runs straight from the package instead, and a source checkout (one
+with a `src` folder, as after `npm link`) always runs itself.
+
+## How people update
+
+The installed app checks the npm registry for a newer version at start and
+when Settings opens (`src/main/updates.ts`). **Update** quits Carrel and runs
+`npx @radyko/carrel@latest` in the person's login shell, so it finds Node the
+way Terminal does. The new version opens when that finishes; if it fails, the
+old one opens again, and the output is in `update.log` in Carrel's logs folder.
+
+Two guards keep an update from running new code against an old process:
+the installer closes any running copy before replacing files (asking it to
+quit, then stopping it), and the app restarts itself if it finds a different
+version on disk when it loads its window.
 
 `scripts/install-app.js` does the installing. It copies Electron into
 `Carrel.app` (on Linux, `~/.local/share/carrel` plus a menu entry and a
@@ -21,7 +37,9 @@ icon, and on macOS signs it ad hoc for this computer.
 
 The package is published to npm as `@radyko/carrel` (npm refused the plain
 name `carrel` as too similar to `parcel`), so people run `npx @radyko/carrel`.
-To release a new version: `npm version minor` (or `patch`), then `npm publish`.
+To release a new version: `npm version minor` (or `patch`), then
+`npm publish`. Installed copies offer it the next time they start or Settings is
+opened.
 
 If you change `guide/default-guide.yaml`, add the SHA-256 of the *previous*
 default (`git show HEAD:guide/default-guide.yaml | shasum -a 256`) to
@@ -40,7 +58,12 @@ The code is Electron with TypeScript, React and Vite, and PDF.js for PDFs.
 - `src/preload/`: the small API the interface is allowed to use. The
   interface runs with context isolation, sandboxing and no Node integration.
 - `src/shared/`: logic shared by both sides: the guide schema, the paper
-  model, review scheduling, filtering and sorting.
+  model, review scheduling, filtering and sorting, and the colour choices
+  (`look.ts`).
+- Colours are CSS custom properties in `src/renderer/styles.css`, each a
+  `light-dark()` pair. A background tone (`data-tone` on the root) swaps the
+  neutrals. Every accent shade is derived from one `--accent-base` colour with
+  OKLCH relative colours, clamping lightness so text on it stays readable.
 - `src/renderer/`: the React interface (plain React and CSS; no other UI
   libraries).
 - `guide/default-guide.yaml`: the default method.
