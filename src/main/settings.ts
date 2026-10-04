@@ -4,8 +4,11 @@ import path from 'node:path';
 import { app } from 'electron';
 import { readTextIfExists, writeFileAtomic } from './storage/files';
 
+export type Appearance = 'system' | 'light' | 'dark';
+
 export interface Settings {
   libraryPath: string;
+  appearance: Appearance;
   /** Library folders the default guide has already been copied into. */
   guideInstalled: string[];
   windowBounds?: { x?: number; y?: number; width: number; height: number; maximized?: boolean };
@@ -20,13 +23,14 @@ export function defaultLibraryPath(): string {
 }
 
 export async function loadSettings(): Promise<Settings> {
-  const defaults: Settings = { libraryPath: defaultLibraryPath(), guideInstalled: [] };
+  const defaults: Settings = { libraryPath: defaultLibraryPath(), appearance: 'system', guideInstalled: [] };
   try {
     const text = await readTextIfExists(settingsPath());
     if (!text) return defaults;
     const data = JSON.parse(text) as Partial<Settings>;
     return {
       libraryPath: typeof data.libraryPath === 'string' && data.libraryPath ? data.libraryPath : defaults.libraryPath,
+      appearance: data.appearance === 'light' || data.appearance === 'dark' ? data.appearance : 'system',
       guideInstalled: Array.isArray(data.guideInstalled) ? data.guideInstalled.filter((p) => typeof p === 'string') : [],
       windowBounds: data.windowBounds,
     };

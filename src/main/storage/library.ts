@@ -3,11 +3,13 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import YAML from 'yaml';
 import { allStages, normalizeHeading, stageFields, summaryFields, type Guide } from '../../shared/guide';
 import { localDate, localDateTime } from '../../shared/dates';
 import {
   META_KEYS,
   META_ORDER,
+  distinctNames,
   emptyMeta,
   frontMatterValue,
   metaFromFrontMatter,
@@ -21,6 +23,7 @@ import {
 import { exists, readTextIfExists, writeFileAtomic } from './files';
 import {
   appendSub,
+  deleteFront,
   getAnswer,
   getSectionText,
   parseNotes,
@@ -36,6 +39,14 @@ import {
 import { paperSlug } from './slug';
 
 export const NOTES_FILE = 'notes.md';
+export const COLLECTIONS_FILE = 'collections.yaml';
+
+const COLLECTIONS_HEADER = `# Collections in Carrel's sidebar, in order. Which papers belong to a
+# collection is stored in each paper's notes.md (the \`collections\` field);
+# this file remembers the names and their order, including empty collections.
+`;
+
+const sameName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
 export const PDF_FILE = 'paper.pdf';
 
 export function notesSchema(guide: Guide): NotesSchema {
@@ -216,6 +227,84 @@ export class Library {
     return file;
   }
 
+  // ----- Collections -----
+
+  get collectionsFile(): string {
+    return path.join(this.root, COLLECTIONS_FILE);
+  }
+
+  private async readCollectionsDoc(): Promise<YAML.Document | null> {
+    const text = await readTextIfExists(this.collectionsFile);
+    if (text === null) return null;
+    const doc = YAML.parseDocument(text);
+    if (doc.errors.length) {
+      throw new Error(`${this.collectionsFile} could not be read (${doc.errors[0].message.split('\n')[0]}). Fix it in a text editor.`);
+    }
+    return doc;
+  }
+
+  private async savedCollections(): Promise<string[]> {
+    let doc: YAML.Document | null;
+    try {
+      doc = await this.readCollectionsDoc();
+    } catch {
+      return [];
+    }
+    const list = doc?.toJS()?.collections;
+    return Array.isArray(list) ? distinctNames(list.map((x) => String(x ?? ''))) : [];
+  }
+
+  private async saveCollections(names: string[]): Promise<void> {
+    const doc = (await this.readCollectionsDoc()) ?? YAML.parseDocument(COLLECTIONS_HEADER);
+    if (doc.contents === null) doc.contents = doc.createNode({});
+    doc.set('collections', doc.createNode(distinctNames(names)));
+    await writeFileAtomic(this.collectionsFile, doc.toString({ lineWidth: 0 }));
+  }
+
+  /** All collections: the saved order first, then any found only in papers. */
+  async collections(papers: PaperSummary[]): Promise<string[]> {
+    const saved = await this.savedCollections();
+    const found = distinctNames(papers.flatMap((p) => p.meta.collections)).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }),
+    );
+    return distinctNames([...saved, ...found]);
+  }
+
+  createCollection(name: string, guide: Guide): Promise<void> {
+    return this.serial('.collections', async () => {
+      const clean = name.trim();
+      if (!clean) throw new Error('A collection needs a name.');
+      await this.saveCollections([...(await this.collections(await this.scan(guide))), clean]);
+    });
+  }
+
+  /** Renames a collection everywhere, including in every paper that belongs to it. */
+  renameCollection(from: string, to: string, guide: Guide): Promise<void> {
+    return this.serial('.collections', async () => {
+      const clean = to.trim();
+      if (!clean) throw new Error('A collection needs a name.');
+      const papers = await this.scan(guide);
+      const names = await this.collections(papers);
+      await this.saveCollections(names.map((n) => (sameName(n, from) ? clean : n)));
+      for (const p of papers.filter((p) => p.meta.collections.some((c) => sameName(c, from)))) {
+        const collections = distinctNames(p.meta.collections.map((c) => (sameName(c, from) ? clean : c)));
+        await this.update(p.id, { meta: { collections } }, guide);
+      }
+    });
+  }
+
+  /** Deletes a collection. Its papers stay in the library. */
+  deleteCollection(name: string, guide: Guide): Promise<void> {
+    return this.serial('.collections', async () => {
+      const papers = await this.scan(guide);
+      const names = await this.collections(papers);
+      await this.saveCollections(names.filter((n) => !sameName(n, name)));
+      for (const p of papers.filter((p) => p.meta.collections.some((c) => sameName(c, name)))) {
+        await this.update(p.id, { meta: { collections: p.meta.collections.filter((c) => !sameName(c, name)) } }, guide);
+      }
+    });
+  }
+
   async create(input: NewPaperInput, guide: Guide): Promise<PaperDoc> {
     await this.ensure();
     const meta: Partial<PaperMeta> = { ...input.meta, added: input.meta.added ?? localDate(this.now()) };
@@ -259,6 +348,8 @@ export function applyPatch(file: NotesFile, patch: PaperPatch, guide: Guide, now
   }
   if (patch.touch) front[META_KEYS.lastWorked] = localDateTime(now);
   if (Object.keys(front).length) setFront(file, front);
+  // Collections replace the old single `course` field, which was read into them.
+  if (patch.meta && 'collections' in patch.meta) deleteFront(file, 'course');
 
   for (const [stageId, fields] of Object.entries(patch.answers ?? {})) {
     const stage = allStages(guide).find((s) => s.id === stageId);

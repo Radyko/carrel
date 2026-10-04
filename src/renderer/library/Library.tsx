@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Guide } from '../../shared/guide';
 import {
   GROUPS,
@@ -15,6 +15,11 @@ import { isDue } from '../../shared/review';
 import { friendlyDate, stars } from '../format';
 import { Preview } from './Preview';
 
+/** A collection name being typed in the sidebar: a new one, or a rename. */
+export type Naming = { mode: 'new'; addPaper?: string } | { mode: 'rename'; from: string };
+
+export const PAPER_DRAG_TYPE = 'application/x-carrel-paper';
+
 export interface LibraryUi {
   filter: Filter;
   search: string;
@@ -25,6 +30,13 @@ export interface LibraryUi {
 interface Props {
   guide: Guide;
   papers: PaperSummary[];
+  collections: string[];
+  naming: Naming | null;
+  setNaming: (naming: Naming | null) => void;
+  onNameCollection: (name: string) => void;
+  onCollectionMenu: (name: string) => void;
+  onDropOnCollection: (paperId: string, collection: string) => void;
+  onPaperCollectionsMenu: (id: string) => void;
   loaded: boolean;
   today: string;
   ui: LibraryUi;
@@ -78,7 +90,7 @@ export function Library(props: Props) {
   );
   const selected = papers.find((p) => p.id === ui.selected) ?? null;
   const topics = useMemo(() => distinct(papers.flatMap((p) => p.meta.topics)), [papers]);
-  const courses = useMemo(() => distinct(papers.map((p) => p.meta.course)), [papers]);
+
   const dueIds = useMemo(
     () => sortPapers(papers.filter((p) => isDue(p.meta, today)), { key: 'lastWorked', dir: 'asc' }).map((p) => p.id),
     [papers, today],
@@ -123,11 +135,35 @@ export function Library(props: Props) {
     ui.filter.kind === f.kind &&
     (f.kind === 'group' ? ui.filter.kind === 'group' && ui.filter.id === f.id : 'value' in ui.filter && ui.filter.value === f.value);
 
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+
   const sideItem = (f: Filter, label: string, n: number, due = false) => (
     <button
       key={`${f.kind}:${f.kind === 'group' ? f.id : f.value}`}
-      className={`side-item${isActive(f) ? ' active' : ''}`}
+      className={`side-item${isActive(f) ? ' active' : ''}${f.kind === 'collection' && dropTarget === f.value ? ' drop' : ''}`}
       onClick={() => setUi({ filter: f })}
+      {...(f.kind === 'collection'
+        ? {
+            onContextMenu: (e: React.MouseEvent) => {
+              e.preventDefault();
+              props.onCollectionMenu(f.value);
+            },
+            onDragOver: (e: React.DragEvent) => {
+              if (!e.dataTransfer.types.includes(PAPER_DRAG_TYPE)) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'copy';
+              setDropTarget(f.value);
+            },
+            onDragLeave: () => setDropTarget((t) => (t === f.value ? null : t)),
+            onDrop: (e: React.DragEvent) => {
+              const id = e.dataTransfer.getData(PAPER_DRAG_TYPE);
+              setDropTarget(null);
+              if (!id) return;
+              e.preventDefault();
+              props.onDropOnCollection(id, f.value);
+            },
+          }
+        : {})}
     >
       <span className="name">{label}</span>
       {n > 0 && <span className={`count${due ? ' due' : ''}`}>{n}</span>}
@@ -143,10 +179,32 @@ export function Library(props: Props) {
         <nav className="sidebar-scroll" aria-label="Library groups">
           <h3>Library</h3>
           {GROUPS.map((g) => sideItem({ kind: 'group', id: g.id }, g.label, count({ kind: 'group', id: g.id }), g.id === 'due'))}
+          <div className="side-heading">
+            <h3>Collections</h3>
+            <button
+              className="side-add"
+              title="New collection"
+              aria-label="New collection"
+              onClick={() => props.setNaming({ mode: 'new' })}
+            >
+              +
+            </button>
+          </div>
+          {props.collections.map((c) =>
+            props.naming?.mode === 'rename' && props.naming.from === c ? (
+              <NameField key={c} initial={c} onDone={props.onNameCollection} onCancel={() => props.setNaming(null)} />
+            ) : (
+              sideItem({ kind: 'collection', value: c }, c, count({ kind: 'collection', value: c }))
+            ),
+          )}
+          {props.naming?.mode === 'new' && (
+            <NameField initial="" onDone={props.onNameCollection} onCancel={() => props.setNaming(null)} />
+          )}
+          {props.collections.length === 0 && props.naming?.mode !== 'new' && (
+            <p className="side-hint">Group papers by course or project. Drag a paper onto a collection to add it.</p>
+          )}
           {topics.length > 0 && <h3>Topics</h3>}
           {topics.map((t) => sideItem({ kind: 'topic', value: t }, t, count({ kind: 'topic', value: t })))}
-          {courses.length > 0 && <h3>Courses</h3>}
-          {courses.map((c) => sideItem({ kind: 'course', value: c }, c, count({ kind: 'course', value: c })))}
         </nav>
         <div className="sidebar-foot">
           <button className="btn quiet small" onClick={props.onSettings}>
@@ -218,6 +276,11 @@ export function Library(props: Props) {
                     data-id={p.id}
                     className={`row${p.id === ui.selected ? ' selected' : ''}`}
                     onMouseDown={() => setUi({ selected: p.id })}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(PAPER_DRAG_TYPE, p.id);
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
                     onDoubleClick={() => props.onOpen(p.id)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -266,7 +329,9 @@ export function Library(props: Props) {
           onTrash={props.onTrash}
           onTopic={(t) => setUi({ filter: { kind: 'topic', value: t } })}
           topics={topics}
-          courses={courses}
+          collections={props.collections}
+          onCollection={(c) => setUi({ filter: { kind: 'collection', value: c } })}
+          onCollectionsMenu={props.onPaperCollectionsMenu}
         />
       )}
     </div>
@@ -303,5 +368,35 @@ function Welcome({ guide, onAddPdf, onAddEntry }: { guide: Guide; onAddPdf: () =
         </button>
       </div>
     </div>
+  );
+}
+
+function NameField({ initial, onDone, onCancel }: { initial: string; onDone: (name: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState(initial);
+  const done = useRef(false);
+  const finish = (save: boolean) => {
+    if (done.current) return;
+    done.current = true;
+    if (save && value.trim() && value.trim() !== initial) onDone(value.trim());
+    else onCancel();
+  };
+  return (
+    <input
+      className="field side-name"
+      autoFocus
+      value={value}
+      placeholder="Collection name"
+      aria-label="Collection name"
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') finish(true);
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          finish(false);
+        }
+      }}
+      onBlur={() => finish(true)}
+    />
   );
 }

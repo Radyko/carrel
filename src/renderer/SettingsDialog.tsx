@@ -1,4 +1,4 @@
-import type { AppState } from '../shared/api';
+import type { AppState, Appearance } from '../shared/api';
 import { Modal } from './common/Modal';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
   onRevealLibrary: () => void;
   onRevealGuide: () => void;
   onRestoreGuide: () => void;
+  onAppearance: (appearance: Appearance) => void;
   onClose: () => void;
 }
 
@@ -16,6 +17,29 @@ export function SettingsDialog({ state, ...on }: Props) {
     <Modal onClose={on.onClose} width={520}>
       <h2>Settings</h2>
       <p className="sub">Carrel {state.version}</p>
+
+      <div className="settings-row">
+        <span className="label">Appearance</span>
+        <div className="segmented" role="radiogroup" aria-label="Appearance">
+          {(
+            [
+              ['system', 'Match system'],
+              ['light', 'Light'],
+              ['dark', 'Dark'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              role="radio"
+              aria-checked={state.appearance === value}
+              className={state.appearance === value ? 'on' : ''}
+              onClick={() => on.onAppearance(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="settings-row">
         <span className="label">Library folder</span>

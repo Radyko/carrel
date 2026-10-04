@@ -12,6 +12,12 @@ const api: CarrelApi = {
   revealPaper: (id) => ipcRenderer.invoke('paper:reveal', id),
   trashPaper: (id) => ipcRenderer.invoke('paper:trash', id),
   paperContextMenu: (id, options) => ipcRenderer.invoke('paper:context-menu', id, options),
+  paperCollectionsMenu: (options) => ipcRenderer.invoke('paper:collections-menu', options),
+  collectionContextMenu: (name) => ipcRenderer.invoke('collection:context-menu', name),
+  listCollections: () => ipcRenderer.invoke('collections:list'),
+  createCollection: (name) => ipcRenderer.invoke('collections:create', name),
+  renameCollection: (from, to) => ipcRenderer.invoke('collections:rename', from, to),
+  deleteCollection: (name) => ipcRenderer.invoke('collections:delete', name),
   choosePdf: () => ipcRenderer.invoke('dialog:choose-pdf'),
   pathForFile: (file) => webUtils.getPathForFile(file),
   chooseLibrary: () => ipcRenderer.invoke('library:choose'),
@@ -20,6 +26,12 @@ const api: CarrelApi = {
   restoreGuide: () => ipcRenderer.invoke('guide:restore'),
   reloadGuide: () => ipcRenderer.invoke('guide:reload'),
   openLink: (url) => ipcRenderer.invoke('shell:open-link', url),
+  setAppearance: (appearance) => ipcRenderer.invoke('settings:appearance', appearance),
+  onFullScreen: (handler) => {
+    const listener = (_: unknown, fullScreen: boolean) => handler(fullScreen);
+    ipcRenderer.on('window:full-screen', listener);
+    return () => ipcRenderer.removeListener('window:full-screen', listener);
+  },
   onMenu: (handler) => {
     const listener = (_: unknown, action: MenuAction) => handler(action);
     ipcRenderer.on('menu', listener);

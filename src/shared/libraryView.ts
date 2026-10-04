@@ -15,7 +15,10 @@ export const GROUPS: { id: GroupId; label: string }[] = [
   { id: 'due', label: 'Due for review' },
 ];
 
-export type Filter = { kind: 'group'; id: GroupId } | { kind: 'topic'; value: string } | { kind: 'course'; value: string };
+export type Filter =
+  | { kind: 'group'; id: GroupId }
+  | { kind: 'topic'; value: string }
+  | { kind: 'collection'; value: string };
 
 export type SortKey = 'title' | 'author' | 'year' | 'topics' | 'pass' | 'rating' | 'lastWorked';
 export interface Sort {
@@ -23,7 +26,7 @@ export interface Sort {
   dir: 'asc' | 'desc';
 }
 
-const same = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
+export const same = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
 
 export function inGroup(p: PaperSummary, id: GroupId, today: string): boolean {
   if (id === 'all') return true;
@@ -34,7 +37,7 @@ export function inGroup(p: PaperSummary, id: GroupId, today: string): boolean {
 export function matchesFilter(p: PaperSummary, filter: Filter, today: string): boolean {
   if (filter.kind === 'group') return inGroup(p, filter.id, today);
   if (filter.kind === 'topic') return p.meta.topics.some((t) => same(t, filter.value));
-  return same(p.meta.course, filter.value);
+  return p.meta.collections.some((c) => same(c, filter.value));
 }
 
 function fold(s: string): string {
@@ -50,7 +53,7 @@ export function matchesSearch(p: PaperSummary, query: string): boolean {
   if (!words.length) return true;
   const m = p.meta;
   const hay = fold(
-    [m.title, m.authors.join(' '), m.venue, m.course, m.topics.join(' '), m.year ?? '', p.searchText].join('\n'),
+    [m.title, m.authors.join(' '), m.venue, m.collections.join(' '), m.topics.join(' '), m.year ?? '', p.searchText].join('\n'),
   );
   return words.every((w) => hay.includes(w));
 }

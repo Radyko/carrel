@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import type { PaperMeta } from '../../shared/paper';
+import { distinctNames, type PaperMeta } from '../../shared/paper';
 import { Modal } from '../common/Modal';
 import { splitList } from '../format';
 
@@ -9,19 +9,27 @@ export interface PaperFormProps {
   /** File name of the PDF being added, if any. */
   pdfName?: string;
   topics: string[];
-  courses: string[];
+  collections: string[];
   onSave: (meta: Partial<PaperMeta>) => Promise<void>;
   onCancel: () => void;
 }
 
-export function PaperForm({ mode, initial, pdfName, topics, courses, onSave, onCancel }: PaperFormProps) {
+export function PaperForm({ mode, initial, pdfName, topics, collections, onSave, onCancel }: PaperFormProps) {
   const [title, setTitle] = useState(initial.title ?? '');
   const [authors, setAuthors] = useState((initial.authors ?? []).join(', '));
   const [year, setYear] = useState(initial.year ? String(initial.year) : '');
   const [venue, setVenue] = useState(initial.venue ?? '');
   const [link, setLink] = useState(initial.link ?? '');
   const [topicText, setTopicText] = useState((initial.topics ?? []).join(', '));
-  const [course, setCourse] = useState(initial.course ?? '');
+  const [chosen, setChosen] = useState<string[]>(initial.collections ?? []);
+  const [newCollection, setNewCollection] = useState('');
+  const allCollections = distinctNames([...collections, ...chosen]);
+  const toggle = (c: string) => setChosen((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
+  const addNew = () => {
+    const name = newCollection.trim();
+    if (name) setChosen((cs) => distinctNames([...cs, name]));
+    setNewCollection('');
+  };
   const [saving, setSaving] = useState(false);
 
   const yearNum = year.trim() ? Number(year.trim()) : null;
@@ -40,7 +48,7 @@ export function PaperForm({ mode, initial, pdfName, topics, courses, onSave, onC
         venue: venue.trim(),
         link: link.trim(),
         topics: splitList(topicText),
-        course: course.trim(),
+        collections: distinctNames([...chosen, newCollection]),
       });
     } finally {
       setSaving(false);
@@ -90,13 +98,34 @@ export function PaperForm({ mode, initial, pdfName, topics, courses, onSave, onC
             </datalist>
           </div>
           <div className="wide">
-            <label className="label" htmlFor="f-course">Course</label>
-            <input id="f-course" className="field" type="text" value={course} list="course-list" onChange={(e) => setCourse(e.target.value)} />
-            <datalist id="course-list">
-              {courses.map((c) => (
-                <option key={c} value={c} />
+            <span className="label">Collections</span>
+            <div className="pill-picker">
+              {allCollections.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  className={`choice small${chosen.includes(c) ? ' chosen' : ''}`}
+                  aria-pressed={chosen.includes(c)}
+                  onClick={() => toggle(c)}
+                >
+                  {c}
+                </button>
               ))}
-            </datalist>
+              <input
+                className="field bare new-pill"
+                type="text"
+                value={newCollection}
+                placeholder={allCollections.length ? 'New…' : 'A course or project, e.g. CS 8803'}
+                aria-label="New collection"
+                onChange={(e) => setNewCollection(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addNew();
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
         {!yearValid && <p className="help">The year should be a number like 2007.</p>}
