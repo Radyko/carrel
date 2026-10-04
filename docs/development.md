@@ -20,7 +20,8 @@ with a `src` folder, as after `npm link`) always runs itself.
 ## How people update
 
 The installed app checks the npm registry for a newer version at start and
-when Settings opens, and when its window regains focus at most hourly
+every 15 minutes while open, when its window regains focus (if the last check
+was over 2 minutes ago), and when Settings opens
 (`src/main/updates.ts`). **Update** quits Carrel and runs
 `npx @radyko/carrel@latest`. Apps opened from the Dock or Finder don't get
 Terminal's PATH, so `src/main/findNode.ts` looks for Node itself: on the

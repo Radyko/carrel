@@ -86,8 +86,8 @@ Open Settings from the bottom of the sidebar (or ⌘,).
 
 ## Updating
 
-Carrel looks for a new version when it opens, when you open Settings, and
-when you come back to its window (at most once an hour). When one is out,
+Carrel looks for a new version when it opens, every 15 minutes while it's
+open, when you come back to its window, and when you open Settings. When one is out,
 **Update to …** appears at the bottom of the sidebar (or in the toolbar when
 the sidebar is hidden), and Settings shows an **Update** button. Carrel closes, updates
 itself, and opens again in about a minute. Your papers and notes aren't

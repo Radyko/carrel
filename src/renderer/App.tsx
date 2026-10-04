@@ -29,6 +29,8 @@ interface PendingPdf {
   data: Uint8Array;
 }
 
+const MINUTE = 60 * 1000;
+
 export function App() {
   const [state, setState] = useState<AppState | null>(null);
   const [papers, setPapers] = useState<PaperSummary[]>([]);
@@ -126,24 +128,29 @@ export function App() {
     rememberLook({ tone, accent });
   }, [tone, accent]);
 
-  // Look for a new version at start, whenever Settings opens, and when the
-  // window comes back into focus (at most hourly; on a Mac, Carrel can stay
-  // open for days).
+  // Look for a new version at start, every 15 minutes while Carrel is open,
+  // when the window comes back into focus (if the last look was over 2
+  // minutes ago), and whenever Settings opens. The check is one tiny request
+  // to the npm registry.
   const ready = state !== null;
   const lastCheck = useRef(0);
   useEffect(() => {
     if (!ready) return;
     let live = true;
-    const check = (force: boolean) => {
-      if (!force && Date.now() - lastCheck.current < 60 * 60 * 1000) return;
+    const check = (minAge: number) => {
+      if (Date.now() - lastCheck.current < minAge) return;
       lastCheck.current = Date.now();
-      void api.checkForUpdate().then((u) => live && setUpdate((prev) => (prev?.state === 'available' && u.state === 'offline' ? prev : u)));
+      void api
+        .checkForUpdate()
+        .then((u) => live && setUpdate((prev) => (prev?.state === 'available' && u.state === 'offline' ? prev : u)));
     };
-    check(settingsOpen || lastCheck.current === 0);
-    const onFocus = () => check(false);
+    check(settingsOpen ? 0 : 2 * MINUTE);
+    const onFocus = () => check(2 * MINUTE);
+    const timer = setInterval(() => check(0), 15 * MINUTE);
     window.addEventListener('focus', onFocus);
     return () => {
       live = false;
+      clearInterval(timer);
       window.removeEventListener('focus', onFocus);
     };
   }, [ready, settingsOpen]);
