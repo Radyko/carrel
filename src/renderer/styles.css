@@ -26,13 +26,13 @@
 
   /* Accent. Light mode keeps it dark enough for white text on it; dark mode
      keeps it light enough to read on the dark background. */
-  --accent-base: #2e7d5b;
+  --accent-base: #00356b;
   --accent: light-dark(
-    oklch(from var(--accent-base) clamp(0.36, l, 0.52) c h),
+    oklch(from var(--accent-base) clamp(0.3, l, 0.52) c h),
     oklch(from var(--accent-base) clamp(0.7, l, 0.8) min(c, 0.17) h)
   );
   --accent-text: light-dark(
-    oklch(from var(--accent-base) clamp(0.3, l - 0.06, 0.46) c h),
+    oklch(from var(--accent-base) clamp(0.28, l - 0.04, 0.46) c h),
     oklch(from var(--accent-base) clamp(0.76, l + 0.06, 0.86) min(c, 0.15) h)
   );
   --accent-soft: light-dark(
@@ -1338,10 +1338,10 @@ body.resizing .notes-side {
 /* ---------- Highlights ---------- */
 
 :root {
-  --hl-yellow: #ffd84d;
-  --hl-green: #8fdc9a;
-  --hl-blue: #8ec5ff;
-  --hl-pink: #ffa3cf;
+  --hl-yellow: #f3d36b;
+  --hl-green: #a9d3a2;
+  --hl-blue: #a7c4e6;
+  --hl-pink: #e6b2c2;
 }
 .carrel-highlights {
   position: absolute;

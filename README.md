@@ -1,10 +1,6 @@
 <p align="center">
-  <img src="assets/icon.png" width="128" alt="">
+  <img src="assets/banner.png" alt="Carrel: a quiet study desk for reading research papers" width="100%">
 </p>
-
-<h1 align="center">Carrel</h1>
-
-<p align="center">A quiet study desk for reading research papers.</p>
 
 Carrel walks you through a paper one step at a time, keeps your notes beside
 the PDF, and brings the paper back later so you remember it. Your notes are
@@ -15,13 +11,17 @@ plain text files on your computer, and they belong to you.
 You need **Node.js** first. It's free. Get it from [nodejs.org](https://nodejs.org)
 (choose the LTS version), or with Homebrew run `brew install node`.
 
-Then open **Terminal** and paste this:
+Then open **Terminal** and type:
 
 ```sh
-npx @radyko/carrel@latest
+npx radyko/carrel
 ```
 
 Press Return. If it asks "Ok to proceed?", type `y`. A minute later Carrel opens.
+
+<sub>On a Mac without developer tools, a window may offer to install them. Click
+Install, or skip it and run `npx @radyko/carrel` instead. Both get you the same
+app.</sub>
 
 That's it. Carrel is now in your Applications folder like any other app. Open
 it from Launchpad, Spotlight or the Dock. You won't need Terminal again
@@ -39,7 +39,7 @@ You can also update from Terminal at any time, with the same command you
 used to install:
 
 ```sh
-npx @radyko/carrel@latest
+npx radyko/carrel
 ```
 
 To see which version you have, open **Settings**. The version number is under
@@ -68,10 +68,11 @@ per course or project.
 
 In **Settings → Look**:
 
-- Choose a **background** tone. **Linen** and **Sepia** are warm and soft on the
-  eyes, and they tint the PDF pages too.
-- Pick an **accent** colour, or click the rainbow dot to choose any colour you
-  like.
+- Choose a **background** tone. Carrel starts on **Linen**, a warm off-white
+  that is soft on the eyes and tints the PDF pages too.
+- Pick an **accent** colour. Carrel starts on **Yale blue**, and the others are
+  deep, quiet colours like slate, old gold and oxblood. Want something louder?
+  The rainbow dot opens a picker for any colour.
 - Use **Light**, **Dark**, or match your computer.
 
 ## Your notes

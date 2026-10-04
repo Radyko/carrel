@@ -36,7 +36,11 @@ version on disk when it loads its window.
 icon, and on macOS signs it ad hoc for this computer.
 
 The package is published to npm as `@radyko/carrel` (npm refused the plain
-name `carrel` as too similar to `parcel`), so people run `npx @radyko/carrel`.
+name `carrel` as too similar to `parcel`). The README tells people to run
+`npx radyko/carrel`, npm's shorthand for this GitHub repository. npm downloads
+`main`, builds it with the `prepare` script, and runs `bin/carrel.js`, which
+hands over to the npm release if that is newer. `npx @radyko/carrel` skips the
+build and doesn't need git, so the README offers it as the fallback.
 To release a new version: `npm version minor` (or `patch`), then
 `npm publish`. Installed copies offer it the next time they start or Settings is
 opened.
@@ -46,9 +50,8 @@ default (`git show HEAD:guide/default-guide.yaml | shasum -a 256`) to
 `PREVIOUS_DEFAULTS` in `src/main/storage/guideFile.ts`. People who never edited
 their guide then get the new one automatically.
 
-`npx github:Radyko/carrel` also works, without publishing, because the
-`prepare` script builds the package when npm fetches it from GitHub. Add
-`#branch-name` to try a branch: `npx github:Radyko/carrel#some-branch`.
+To try a branch before merging it, add its name:
+`npx radyko/carrel#some-branch`.
 
 The code is Electron with TypeScript, React and Vite, and PDF.js for PDFs.
 
@@ -68,7 +71,10 @@ The code is Electron with TypeScript, React and Vite, and PDF.js for PDFs.
   libraries).
 - `guide/default-guide.yaml`: the default method.
 - `bin/carrel.js` and `scripts/install-app.js`: the `carrel` command and installing Carrel as an app.
-- `assets/`: the app icon (`icon.svg` is the source of `icon.png`).
+- `assets/`: the app icon (`icon.svg` is the source of `icon.png`) and the
+  README banner (`banner.html` is the source of `banner.png`). Render them by
+  opening each in a browser at 1024×1024 and 1280×400 (2× scale) and taking a
+  screenshot with a transparent background.
 
 Set `CARREL_LIBRARY=/some/folder` to open a different library for one run, for
 example to try things out without touching your own notes.

@@ -12,10 +12,12 @@ import path from 'node:path';
 import type { UpdateStart, UpdateStatus } from '../shared/api';
 import { compareVersions } from '../shared/version';
 
-/** The command that installs or updates Carrel, as shown to people. */
-export function updateCommand(packageName: string): string {
-  return `npx ${packageName}@latest`;
-}
+/**
+ * The command that installs or updates Carrel, as shown to people. It is npm's
+ * shorthand for the GitHub repository; the command then fetches the newest
+ * release from npm if it is newer (see bin/carrel.js).
+ */
+export const UPDATE_COMMAND = 'npx radyko/carrel';
 
 /** 'app' when this is the installed app, 'source' when it runs from a checkout or package folder. */
 export function installKind(): 'app' | 'source' {

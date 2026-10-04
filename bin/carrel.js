@@ -74,7 +74,18 @@ const runHere = has('--here') || has('--foreground') || isCheckout;
 
 const installer = require(path.join(appDir, 'scripts', 'install-app.js'));
 
+const tty = process.stdout.isTTY && !process.env.NO_COLOR;
+const paint = (code, text) => (tty ? `\x1b[${code}m${text}\x1b[0m` : text);
+
+/** Carrel's name in Yale blue and cream, with a gold mark, like the icon. */
+function greet() {
+  const name = paint('1;38;2;243;234;214;48;2;0;53;107', ' Carrel ');
+  console.log(`\n  ${paint('38;2;233;199;123', '▌')}${name} ${paint('2', `${version} · a quiet study desk for research papers`)}\n`);
+}
+
 async function installAndOpen() {
+  // The hand-over below runs this command again; greet only once.
+  if (!process.env.CARREL_NO_UPDATE_CHECK) greet();
   // npx can reuse an old copy it downloaded before. If a newer Carrel is out,
   // hand over to it so whatever command someone remembers gets the latest.
   if (!process.env.CARREL_NO_UPDATE_CHECK && !has('--reinstall')) {
