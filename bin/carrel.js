@@ -34,10 +34,12 @@ function compareVersions(a, b) {
 /** The newest published version, or null when offline. */
 async function latestVersion() {
   try {
-    const res = await fetch(`https://registry.npmjs.org/${packageName.replace('/', '%2f')}/latest`, {
+    // The package list npx installs from (not /latest, which can be minutes ahead of it).
+    const res = await fetch(`https://registry.npmjs.org/${packageName.replace('/', '%2f')}`, {
+      headers: { Accept: 'application/vnd.npm.install-v1+json' },
       signal: AbortSignal.timeout(4000),
     });
-    return res.ok ? (await res.json()).version ?? null : null;
+    return res.ok ? ((await res.json())['dist-tags'] ?? {}).latest ?? null : null;
   } catch {
     return null;
   }
