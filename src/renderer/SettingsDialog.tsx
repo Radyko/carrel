@@ -61,6 +61,11 @@ export function SettingsDialog({ state, ...on }: Props) {
 
       <section className="settings-group">
         <h3>Updates</h3>
+        {state.updateProblem && (
+          <p className="help update-problem">
+            {state.updateProblem} You can try again below, or run <code>{state.updateCommand}</code> in Terminal.
+          </p>
+        )}
         <Updates state={state} update={on.update} onUpdate={on.onUpdate} />
       </section>
 

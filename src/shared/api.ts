@@ -21,6 +21,8 @@ export interface AppState {
   install: 'app' | 'source';
   /** The command that installs the latest version, for people to type. */
   updateCommand: string;
+  /** Set when the last update didn't finish. */
+  updateProblem: string | null;
 }
 
 export type UpdateStatus =

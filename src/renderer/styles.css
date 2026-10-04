@@ -1727,3 +1727,12 @@ textarea.hl-card-note {
 .settings-head + .settings-group {
   border-top: 0;
 }
+
+.update-problem {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: var(--warn-text);
+  overflow-wrap: anywhere;
+}

@@ -20,10 +20,14 @@ with a `src` folder, as after `npm link`) always runs itself.
 ## How people update
 
 The installed app checks the npm registry for a newer version at start and
-every 15 minutes while open, when its window regains focus (if the last check
-was over 2 minutes ago), and when Settings opens
+every 15 minutes while open, and when its window regains focus, the sidebar
+opens, the library comes back or Settings opens (all but Settings skip a check
+made in the last 30 seconds)
 (`src/main/updates.ts`). **Update** quits Carrel and runs
-`npx @radyko/carrel@latest`. Apps opened from the Dock or Finder don't get
+`npx @radyko/carrel@<version>` with the exact version the check found (right
+after a release, npm can still resolve `@latest` to the previous version), and
+tries twice more if npm doesn't have it yet. A note in `update-pending.json`
+lets the next start tell whether the update took; if not, Settings says so. Apps opened from the Dock or Finder don't get
 Terminal's PATH, so `src/main/findNode.ts` looks for Node itself: on the
 current PATH, then in the folders that nvm, fnm, Volta, asdf, mise, nodenv, n,
 Homebrew and the nodejs.org installer use, and last in the login shell's PATH

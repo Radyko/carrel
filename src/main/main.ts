@@ -10,7 +10,7 @@ import { normalizeLook } from '../shared/look';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { loadGuide, restoreDefaultGuide, type LoadedGuide } from './storage/guideFile';
 import { Library } from './storage/library';
-import { checkForUpdate, installKind, installUpdate, UPDATE_COMMAND } from './updates';
+import { checkForUpdate, installKind, installUpdate, UPDATE_COMMAND, updateOutcome } from './updates';
 
 const APP_SCHEME = 'carrel';
 const appRoot = path.join(__dirname, '..', '..', '..');
@@ -30,6 +30,7 @@ let settings: Settings;
 let library: Library;
 let loadedGuide: LoadedGuide;
 let quitting = false;
+let updateProblem: string | null = null;
 app.on('before-quit', () => (quitting = true));
 
 async function openLibrary(libraryPath: string): Promise<void> {
@@ -56,6 +57,7 @@ function state(): AppState {
     version: app.getVersion(),
     install: installKind(),
     updateCommand: UPDATE_COMMAND,
+    updateProblem,
   };
 }
 
@@ -338,6 +340,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.whenReady().then(async () => {
     settings = await loadSettings();
+    updateProblem = updateOutcome();
     nativeTheme.themeSource = settings.appearance;
     // CARREL_LIBRARY opens another library for this run only (useful for trying things out).
     const libraryPath = process.env.CARREL_LIBRARY ? path.resolve(process.env.CARREL_LIBRARY) : settings.libraryPath;
