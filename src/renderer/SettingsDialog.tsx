@@ -145,21 +145,29 @@ export function SettingsDialog({ state, ...on }: Props) {
 }
 
 function LookPicker({ look, onLook }: { look: Look; onLook: (look: Partial<Look>) => void }) {
-  // The colour wheel reports every movement; show each one at once and save when it settles.
+  // The colour wheel reports every movement; show each one at once and save
+  // when it settles. Closing Settings saves straight away, so a colour picked
+  // just before pressing Done is never lost.
   const [custom, setCustom] = useState<string | null>(null);
+  const pending = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const save = useRef(onLook);
+  save.current = onLook;
+  const flush = () => {
+    clearTimeout(timer.current);
+    if (pending.current) save.current({ accent: pending.current });
+    pending.current = null;
+  };
+  useEffect(() => flush, []);
   const accent = custom ?? look.accent;
   const named = ACCENTS.find((a) => a.color === accent);
 
   const pickCustom = (color: string) => {
     setCustom(color);
     applyLook({ ...look, accent: color });
+    pending.current = color;
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      onLook({ accent: color });
-      setCustom(null);
-    }, 300);
+    timer.current = setTimeout(flush, 300);
   };
 
   return (
@@ -196,7 +204,12 @@ function LookPicker({ look, onLook }: { look: Look; onLook: (look: Partial<Look>
               title={a.name}
               className={`accent-dot${accent === a.color ? ' on' : ''}`}
               style={{ '--dot': a.color } as React.CSSProperties}
-              onClick={() => onLook({ accent: a.color })}
+              onClick={() => {
+                clearTimeout(timer.current);
+                pending.current = null;
+                setCustom(null);
+                onLook({ accent: a.color });
+              }}
             />
           ))}
           <label
