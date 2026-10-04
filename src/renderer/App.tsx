@@ -572,7 +572,6 @@ export function App() {
           today={today}
           onBack={backToLibrary}
           onEdit={() => editPaper(view.id)}
-          onReveal={() => reveal(view.id)}
           onError={report}
           onChanged={refresh}
         />

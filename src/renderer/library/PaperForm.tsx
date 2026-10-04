@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { distinctNames, type PaperMeta } from '../../shared/paper';
 import { Modal } from '../common/Modal';
 import { splitList } from '../format';
@@ -31,6 +31,17 @@ export function PaperForm({ mode, initial, pdfName, topics, collections, onSave,
     setNewCollection('');
   };
   const [saving, setSaving] = useState(false);
+  // Venue, link and topics are rarely known when adding a paper; tuck them away unless filled in.
+  const [more, setMore] = useState(Boolean(initial.venue || initial.link || initial.topics?.length));
+  // Select the title so it can be typed over, but show its beginning.
+  const titleRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(0, el.value.length, 'backward');
+    el.scrollLeft = 0;
+  }, []);
 
   const yearNum = year.trim() ? Number(year.trim()) : null;
   const yearValid = yearNum === null || (Number.isInteger(yearNum) && yearNum > 1000 && yearNum < 3000);
@@ -64,13 +75,13 @@ export function PaperForm({ mode, initial, pdfName, topics, collections, onSave,
           {mode === 'edit'
             ? 'Changes are saved to the notes file.'
             : pdfName
-              ? `The PDF “${pdfName}” will be copied into your library. The original stays where it is.`
+              ? `“${pdfName}” is copied into your library; the original stays where it is.`
               : 'For a paper you read in print or elsewhere.'}
         </p>
         <div className="form-grid">
           <div className="wide">
             <label className="label" htmlFor="f-title">Title</label>
-            <input id="f-title" className="field" type="text" value={title} autoFocus onChange={(e) => setTitle(e.target.value)} />
+            <input id="f-title" ref={titleRef} className="field" type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div>
             <label className="label" htmlFor="f-authors">Authors</label>
@@ -79,23 +90,6 @@ export function PaperForm({ mode, initial, pdfName, topics, collections, onSave,
           <div>
             <label className="label" htmlFor="f-year">Year</label>
             <input id="f-year" className="field" type="text" inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value)} aria-invalid={!yearValid} />
-          </div>
-          <div className="wide">
-            <label className="label" htmlFor="f-venue">Venue</label>
-            <input id="f-venue" className="field" type="text" value={venue} placeholder="Conference or journal" onChange={(e) => setVenue(e.target.value)} />
-          </div>
-          <div className="wide">
-            <label className="label" htmlFor="f-link">Link</label>
-            <input id="f-link" className="field" type="url" value={link} placeholder="https://" onChange={(e) => setLink(e.target.value)} />
-          </div>
-          <div className="wide">
-            <label className="label" htmlFor="f-topics">Topics</label>
-            <input id="f-topics" className="field" type="text" value={topicText} list="topic-list" placeholder="Separate with commas" onChange={(e) => setTopicText(e.target.value)} />
-            <datalist id="topic-list">
-              {topics.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
           </div>
           <div className="wide">
             <span className="label">Collections</span>
@@ -127,6 +121,33 @@ export function PaperForm({ mode, initial, pdfName, topics, collections, onSave,
               />
             </div>
           </div>
+          {more ? (
+            <>
+              <div className="wide">
+                <label className="label" htmlFor="f-venue">Venue</label>
+                <input id="f-venue" className="field" type="text" value={venue} placeholder="Conference or journal" onChange={(e) => setVenue(e.target.value)} />
+              </div>
+              <div className="wide">
+                <label className="label" htmlFor="f-link">Link</label>
+                <input id="f-link" className="field" type="url" value={link} placeholder="https://" onChange={(e) => setLink(e.target.value)} />
+              </div>
+              <div className="wide">
+                <label className="label" htmlFor="f-topics">Topics</label>
+                <input id="f-topics" className="field" type="text" value={topicText} list="topic-list" placeholder="Separate with commas" onChange={(e) => setTopicText(e.target.value)} />
+                <datalist id="topic-list">
+                  {topics.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </div>
+            </>
+          ) : (
+            <div className="wide">
+              <button type="button" className="btn quiet small more-details" onClick={() => setMore(true)}>
+                More details (venue, link, topics)
+              </button>
+            </div>
+          )}
         </div>
         {!yearValid && <p className="help">The year should be a number like 2007.</p>}
         <div className="buttons">

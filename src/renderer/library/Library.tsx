@@ -68,6 +68,14 @@ const COLUMNS: { key: SortKey; label: string; width: string; className?: string 
   { key: 'lastWorked', label: 'Last worked', width: '108px' },
 ];
 
+/** Columns that only show when some paper in the library has something in them. */
+const OPTIONAL: Partial<Record<SortKey, (p: PaperSummary) => boolean>> = {
+  author: (p) => p.meta.authors.length > 0,
+  year: (p) => p.meta.year != null,
+  topics: (p) => p.meta.topics.length > 0,
+  rating: (p) => p.meta.rating != null,
+};
+
 function PassDots({ pass, total }: { pass: number; total: number }) {
   return (
     <span className="dots" title={pass ? `Reached pass ${pass}` : 'Not started'} aria-label={pass ? `Pass ${pass}` : 'Not started'}>
@@ -175,6 +183,10 @@ export function Library(props: Props) {
   );
 
   const empty = props.loaded && papers.length === 0;
+  const columns = useMemo(
+    () => COLUMNS.filter((c) => !OPTIONAL[c.key] || papers.some(OPTIONAL[c.key]!)),
+    [papers],
+  );
 
   return (
     <div className="library">
@@ -233,9 +245,6 @@ export function Library(props: Props) {
           <button className="btn" onClick={props.onAddPdf} title="Add a PDF (or drop one on the window)">
             Add PDF…
           </button>
-          <button className="btn quiet" onClick={props.onAddEntry} title="Add a paper you read in print or elsewhere">
-            Add without PDF…
-          </button>
           <div className="spacer" />
           {!props.sidebarOpen && props.updateVersion && (
             <button className="update-pill" onClick={props.onSettings} title="See what’s new and update">
@@ -271,13 +280,13 @@ export function Library(props: Props) {
           <div className="table-wrap" ref={tableRef} tabIndex={0} onKeyDown={onKeyDown}>
             <table className="papers">
               <colgroup>
-                {COLUMNS.map((c) => (
+                {columns.map((c) => (
                   <col key={c.key} style={{ width: c.width }} />
                 ))}
               </colgroup>
               <thead>
                 <tr>
-                  {COLUMNS.map((c) => (
+                  {columns.map((c) => (
                     <th
                       key={c.key}
                       onClick={() => sortBy(c.key)}
@@ -308,17 +317,9 @@ export function Library(props: Props) {
                       props.onContextMenu(p.id);
                     }}
                   >
-                    <td title={p.meta.title}>{p.meta.title}</td>
-                    <td className="muted">{p.meta.authors[0] ?? ''}</td>
-                    <td className="num muted">{p.meta.year ?? ''}</td>
-                    <td className="muted">{p.meta.topics.join(', ')}</td>
-                    <td>
-                      <PassDots pass={p.meta.furthestPass} total={guide.passes.length} />
-                    </td>
-                    <td>
-                      <span className="stars">{stars(p.meta.rating)}</span>
-                    </td>
-                    <td className="muted">{friendlyDate(p.meta.lastWorked ?? p.meta.added)}</td>
+                    {columns.map((c) => (
+                      <Cell key={c.key} column={c.key} paper={p} passes={guide.passes.length} />
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -358,14 +359,38 @@ export function Library(props: Props) {
   );
 }
 
+function Cell({ column, paper: p, passes }: { column: SortKey; paper: PaperSummary; passes: number }) {
+  switch (column) {
+    case 'title':
+      return <td title={p.meta.title}>{p.meta.title}</td>;
+    case 'author':
+      return <td className="muted">{p.meta.authors[0] ?? ''}</td>;
+    case 'year':
+      return <td className="num muted">{p.meta.year ?? ''}</td>;
+    case 'topics':
+      return <td className="muted">{p.meta.topics.join(', ')}</td>;
+    case 'pass':
+      return (
+        <td>
+          <PassDots pass={p.meta.furthestPass} total={passes} />
+        </td>
+      );
+    case 'rating':
+      return (
+        <td>
+          <span className="stars">{stars(p.meta.rating)}</span>
+        </td>
+      );
+    case 'lastWorked':
+      return <td className="muted">{friendlyDate(p.meta.lastWorked ?? p.meta.added)}</td>;
+  }
+}
+
 function Welcome({ guide, onAddPdf, onAddEntry }: { guide: Guide; onAddPdf: () => void; onAddEntry: () => void }) {
   return (
     <div className="welcome">
       <h2>Your carrel is empty</h2>
-      <p>
-        Carrel guides you through a paper in stages of increasing depth. You start by saying why you are reading
-        it, then decide after each pass whether to go on. Stopping after the first pass is a normal outcome.
-      </p>
+      <p>Read each paper in passes, going deeper only when it’s worth it. Most papers need just the first.</p>
       <ol>
         {guide.passes.map((p) => (
           <li key={p.id}>
@@ -378,7 +403,6 @@ function Welcome({ guide, onAddPdf, onAddEntry }: { guide: Guide; onAddPdf: () =
           </li>
         ))}
       </ol>
-      <p>Drop a PDF anywhere on this window to add your first paper.</p>
       <div className="actions">
         <button className="btn primary" onClick={onAddPdf}>
           Choose a PDF…
@@ -387,6 +411,7 @@ function Welcome({ guide, onAddPdf, onAddEntry }: { guide: Guide; onAddPdf: () =
           Add without PDF…
         </button>
       </div>
+      <p className="muted">Or drop a PDF anywhere on this window.</p>
     </div>
   );
 }

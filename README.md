@@ -71,7 +71,7 @@ In **Settings → Look**:
 
 - Choose a **background** tone. Carrel starts on **Linen**, a warm off-white
   that is soft on the eyes and tints the PDF pages too.
-- Pick an **accent** colour. Carrel starts on **Yale blue**, and the others are
+- Pick an **accent** colour. Carrel starts on **Navy**, and the others are
   deep, quiet colours like slate, old gold and oxblood. Want something louder?
   The rainbow dot opens a picker for any colour.
 - Use **Light**, **Dark**, or match your computer.

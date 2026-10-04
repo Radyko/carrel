@@ -22,7 +22,6 @@ interface Props {
   today: string;
   onBack: () => void;
   onEdit: () => void;
-  onReveal: () => void;
   onError: (err: unknown) => void;
   onChanged: () => void;
 }
@@ -408,9 +407,6 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         )}
         <button className="btn quiet small" onClick={props.onEdit}>
           Details…
-        </button>
-        <button className="btn quiet small" onClick={props.onReveal}>
-          {props.isMac ? 'Reveal in Finder' : 'Show in folder'}
         </button>
       </div>
 

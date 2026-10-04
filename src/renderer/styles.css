@@ -607,6 +607,10 @@ button.chip:hover {
 .summary-block {
   margin-top: 18px;
 }
+.preview .reveal {
+  display: block;
+  margin: 22px 0 0 -8px;
+}
 .summary-block h4 {
   font-size: 11px;
   font-weight: 600;
@@ -1667,4 +1671,9 @@ textarea.hl-card-note {
 }
 .update-box .btn {
   margin-top: 4px;
+}
+
+.more-details {
+  margin-left: -8px;
+  color: var(--text-2);
 }
