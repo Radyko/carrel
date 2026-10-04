@@ -20,9 +20,13 @@ with a `src` folder, as after `npm link`) always runs itself.
 ## How people update
 
 The installed app checks the npm registry for a newer version at start and
-when Settings opens (`src/main/updates.ts`). **Update** quits Carrel and runs
-`npx @radyko/carrel@latest` in the person's login shell, so it finds Node the
-way Terminal does. The new version opens when that finishes; if it fails, the
+when Settings opens, and when its window regains focus at most hourly
+(`src/main/updates.ts`). **Update** quits Carrel and runs
+`npx @radyko/carrel@latest`. Apps opened from the Dock or Finder don't get
+Terminal's PATH, so `src/main/findNode.ts` looks for Node itself: on the
+current PATH, then in the folders that nvm, fnm, Volta, asdf, mise, nodenv, n,
+Homebrew and the nodejs.org installer use, and last in the login shell's PATH
+(with stdin closed, so a startup prompt can't hang it). The new version opens when that finishes; if it fails, the
 old one opens again, and the output is in `update.log` in Carrel's logs folder.
 
 Two guards keep an update from running new code against an old process:
