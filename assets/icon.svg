@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a8c68"/>
+      <stop offset="1" stop-color="#1f5c42"/>
+    </linearGradient>
+    <linearGradient id="niche" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#174632"/>
+      <stop offset="1" stop-color="#1c513a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.3" r="0.6">
+      <stop offset="0" stop-color="#ffe7a8" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffe7a8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <!-- the carrel: an arched study niche -->
+  <path d="M292 760 V430 a220 220 0 0 1 440 0 V760 Z" fill="url(#niche)"/>
+  <path d="M292 760 V430 a220 220 0 0 1 440 0 V760" fill="none" stroke="#f3ead6" stroke-width="26" stroke-linejoin="round"/>
+  <ellipse cx="512" cy="470" rx="190" ry="170" fill="url(#glow)"/>
+  <!-- lamp -->
+  <path d="M452 400 h120 l-22 -58 h-76 Z" fill="#f3ead6"/>
+  <circle cx="512" cy="418" r="10" fill="#ffe7a8"/>
+  <!-- desk -->
+  <rect x="250" y="742" width="524" height="30" rx="15" fill="#f3ead6"/>
+  <!-- open book -->
+  <g transform="translate(0 40)">
+  <path d="M512 700 C462 672 408 664 360 670 V600 C408 594 462 602 512 630 Z" fill="#fbf6ea"/>
+  <path d="M512 700 C562 672 616 664 664 670 V600 C616 594 562 602 512 630 Z" fill="#efe5cf"/>
+  <path d="M512 630 V700" stroke="#c9b991" stroke-width="6"/>
+  </g>
+</svg>
