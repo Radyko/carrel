@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type PointerEvent } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { MenuAction } from '../../shared/api';
 import { allStages, purposeQuestionsField, type Guide } from '../../shared/guide';
 import type { PaperDoc, PaperMeta, PaperPatch } from '../../shared/paper';
@@ -6,6 +6,7 @@ import { initialStage, progressFromDecision, progressFromEdit } from '../../shar
 import { api } from '../api';
 import { PdfPane, type PdfHandle } from './PdfPane';
 import { PassTab, PurposeTab, SharedNotes } from './Stages';
+import { formatHighlights, newHighlightId, parseHighlights, type Highlight } from '../../shared/highlights';
 
 export interface ReaderHandle {
   flush(): Promise<void>;
@@ -37,12 +38,13 @@ function mergePatch(a: PaperPatch, b: PaperPatch): PaperPatch {
     meta: a.meta || b.meta ? { ...a.meta, ...b.meta } : undefined,
     answers: Object.keys(answers).length ? answers : undefined,
     notes: b.notes ?? a.notes,
+    highlights: b.highlights ?? a.highlights,
     touch: a.touch || b.touch || undefined,
   };
 }
 
 function isEmpty(p: PaperPatch): boolean {
-  return !p.meta && !p.answers && p.notes === undefined;
+  return !p.meta && !p.answers && p.notes === undefined && p.highlights === undefined;
 }
 
 function readSplit(): number {
@@ -159,6 +161,21 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
       });
     },
     [guide, queue],
+  );
+
+  /** Rewrites the paper's highlights through a function of the current list. */
+  const changeHighlights = useCallback(
+    (change: (items: Highlight[]) => Highlight[]) => {
+      const d = docRef.current;
+      if (!d) return;
+      const parsed = parseHighlights(d.highlights);
+      const highlights = formatHighlights({ ...parsed, items: change(parsed.items) });
+      const progress = progressFromEdit(d.meta, guide, stageId);
+      docRef.current = { ...d, highlights, meta: { ...d.meta, ...progress } };
+      setDoc(docRef.current);
+      queue({ highlights, meta: Object.keys(progress).length ? progress : undefined, touch: true });
+    },
+    [guide, queue, stageId],
   );
 
   const setNotes = useCallback(
@@ -308,6 +325,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         } else if (action === 'zoom-in') pdfRef.current?.zoomIn();
         else if (action === 'zoom-out') pdfRef.current?.zoomOut();
         else if (action === 'fit-width') pdfRef.current?.fitWidth();
+        else if (action === 'highlight') pdfRef.current?.highlightSelection();
       },
     }),
     [commitTimer, flushSaves, goTo, guide.purpose.id, id, onError, stageId, stages, toggleTimer],
@@ -341,6 +359,10 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
   };
+
+  // Parsed once per change, so the PDF only redraws highlights when they change.
+  const highlightsText = doc?.highlights ?? '';
+  const highlights = useMemo(() => parseHighlights(highlightsText).items, [highlightsText]);
 
   if (!doc) return <div className="loading">Opening…</div>;
 
@@ -387,7 +409,20 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         {showPdf && (
           <>
             <div className="pdf-side" style={{ width: `${split * 100}%` }}>
-              <PdfPane ref={pdfRef} paperId={doc.id} initialPage={doc.meta.lastPage} onPageChange={onPageChange} />
+              <PdfPane
+                ref={pdfRef}
+                paperId={doc.id}
+                initialPage={doc.meta.lastPage}
+                onPageChange={onPageChange}
+                highlights={highlights}
+                onAddHighlights={(parts) =>
+                  changeHighlights((items) => [...items, ...parts.map((p) => ({ ...p, id: newHighlightId() }))])
+                }
+                onRecolorHighlight={(id, color) =>
+                  changeHighlights((items) => items.map((h) => (h.id === id ? { ...h, color } : h)))
+                }
+                onDeleteHighlight={(id) => changeHighlights((items) => items.filter((h) => h.id !== id))}
+              />
             </div>
             <div className="divider" onPointerDown={startDrag} role="separator" aria-orientation="vertical" />
           </>
@@ -451,6 +486,12 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                 other={doc.other}
                 reviews={doc.reviews}
                 onNotes={setNotes}
+                highlights={highlights}
+                onJumpToHighlight={(h) => {
+                  if (pdfHidden) setPdfHidden(false);
+                  setTimeout(() => pdfRef.current?.goToPage(h.page), pdfHidden ? 400 : 0);
+                }}
+                onDeleteHighlight={(id) => changeHighlights((items) => items.filter((h) => h.id !== id))}
                 onRating={(rating) => changeMeta({ rating }, { immediate: true })}
               />
             </fieldset>

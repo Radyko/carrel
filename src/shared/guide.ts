@@ -91,6 +91,7 @@ export interface ReviewSettings {
 export interface Guide {
   name: string;
   notesHeading: string;
+  highlightsHeading: string;
   reviewsHeading: string;
   purpose: PurposeStage;
   passes: PassStage[];
@@ -298,8 +299,9 @@ export function parseGuide(raw: unknown): Guide {
   unique(stageIds, 'stage id', 'The guide');
   const notesHeading = headingText(g.notes_heading ?? 'Notes', 'notes_heading');
   const reviewsHeading = headingText(g.reviews_heading ?? 'Reviews', 'reviews_heading');
+  const highlightsHeading = headingText(g.highlights_heading ?? 'Highlights', 'highlights_heading');
   unique(
-    [purpose.heading, ...passes.map((p) => p.heading), notesHeading, reviewsHeading],
+    [purpose.heading, ...passes.map((p) => p.heading), notesHeading, highlightsHeading, reviewsHeading],
     'stage heading',
     'The guide',
     normalizeHeading,
@@ -328,6 +330,7 @@ export function parseGuide(raw: unknown): Guide {
   return {
     name: str(g.name, 'name', 'Guide') || 'Guide',
     notesHeading,
+    highlightsHeading,
     reviewsHeading,
     purpose,
     passes,

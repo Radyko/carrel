@@ -200,6 +200,8 @@ export interface PaperDoc {
   /** Answers by stage id, then field id. Markdown text. */
   answers: Record<string, Record<string, string>>;
   notes: string;
+  /** The Highlights section, in the format of shared/highlights.ts. */
+  highlights: string;
   reviews: ReviewEntry[];
   other: OtherNote[];
   /** Set when the file could not be understood; the paper is then read-only. */
@@ -223,6 +225,7 @@ export interface PaperPatch {
   meta?: Partial<PaperMeta>;
   answers?: Record<string, Record<string, string>>;
   notes?: string;
+  highlights?: string;
   appendReview?: ReviewEntry;
   /** Update last_worked. */
   touch?: boolean;

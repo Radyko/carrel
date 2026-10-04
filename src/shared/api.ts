@@ -42,7 +42,8 @@ export type MenuAction =
   | 'toggle-pdf'
   | 'zoom-in'
   | 'zoom-out'
-  | 'fit-width';
+  | 'fit-width'
+  | 'highlight';
 
 export type ContextAction = 'open' | 'reveal' | 'edit' | 'trash' | 'review' | 'new-collection' | `toggle:${string}`;
 

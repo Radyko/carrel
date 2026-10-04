@@ -28,7 +28,7 @@ year: 2007
 venue: ACM SIGCOMM Computer Communication Review
 link: https://doi.org/10.1145/1273445.1273458
 topics: [method]
-course: Research methods
+collections: [Research methods, Thesis]
 status: read              # to-read, in-progress, read or set-aside
 furthest_pass: 2
 decisions:
@@ -71,6 +71,24 @@ Free-form notes.
 
 Three passes of increasing depth...
 ```
+
+Highlights you make in the PDF are kept in the same file, under
+`# Highlights`, one per line. The quote and page number are plain text; the
+comment at the end, which markdown viewers hide, records where on the page the
+highlight sits:
+
+```markdown
+# Highlights
+
+- p. 4: “PagedAttention divides the KV cache into blocks” <!-- carrel id=k3f9 color=yellow rects=0.112,0.341,0.402,0.012 -->
+```
+
+Deleting a line in an editor removes that highlight.
+
+Collections live in each paper's `collections` field. `~/Carrel/collections.yaml`
+remembers their names and order, so a collection can exist before it has any
+papers. (Older notes files with a single `course:` field are read as a
+collection and updated the next time Carrel saves them.)
 
 The headings are the schema: Carrel reads and writes each answer under its
 heading. Things to know:

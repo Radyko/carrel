@@ -20,6 +20,7 @@ import {
   type PaperPatch,
   type PaperSummary,
 } from '../../shared/paper';
+import { parseHighlights } from '../../shared/highlights';
 import { exists, readTextIfExists, writeFileAtomic } from './files';
 import {
   appendSub,
@@ -53,6 +54,7 @@ export function notesSchema(guide: Guide): NotesSchema {
   return {
     sections: [
       ...allStages(guide).map((s) => ({ heading: s.heading, fields: stageFields(s).map((f) => f.heading) })),
+      { heading: guide.highlightsHeading, fields: [] },
       { heading: guide.notesHeading, fields: [] },
       { heading: guide.reviewsHeading, fields: [] },
     ],
@@ -70,9 +72,10 @@ function otherNotes(file: NotesFile, guide: Guide): OtherNote[] {
   const stages = new Map(allStages(guide).map((s) => [normalizeHeading(s.heading), s]));
   const notes = normalizeHeading(guide.notesHeading);
   const reviews = normalizeHeading(guide.reviewsHeading);
+  const highlights = normalizeHeading(guide.highlightsHeading);
   for (const section of file.sections) {
     const key = normalizeHeading(section.heading);
-    if (key === reviews) continue;
+    if (key === reviews || (key === highlights && !section.subs.length)) continue;
     const stage = stages.get(key);
     if (!stage && key !== notes) {
       const parts = [section.raw.trim(), ...section.subs.map((s) => `## ${s.heading}\n\n${s.raw.trim()}`.trim())];
@@ -171,6 +174,7 @@ export class Library {
       meta,
       answers: readAnswers(file, guide),
       notes: getSectionText(file, guide.notesHeading) ?? '',
+      highlights: getSectionText(file, guide.highlightsHeading) ?? '',
       reviews: subsOf(file, guide.reviewsHeading),
       other: otherNotes(file, guide),
       error: file.frontError ? `The front matter of notes.md could not be read: ${file.frontError}` : null,
@@ -361,6 +365,7 @@ export function applyPatch(file: NotesFile, patch: PaperPatch, guide: Guide, now
     }
   }
   if (patch.notes !== undefined) setSectionText(file, guide.notesHeading, patch.notes, schema);
+  if (patch.highlights !== undefined) setSectionText(file, guide.highlightsHeading, patch.highlights, schema);
   if (patch.appendReview) {
     appendSub(file, guide.reviewsHeading, patch.appendReview.heading, patch.appendReview.text, schema);
   }
@@ -374,6 +379,7 @@ export function summarize(doc: PaperDoc, guide: Guide): PaperSummary {
   const searchText = [
     ...Object.values(doc.answers).flatMap((a) => Object.values(a)),
     doc.notes,
+    ...parseHighlights(doc.highlights).items.map((h) => h.text),
     ...doc.other.map((o) => o.text),
   ]
     .filter(Boolean)

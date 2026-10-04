@@ -91,6 +91,13 @@ export function App() {
 
   useEffect(() => api.onFullScreen(setFullScreen), []);
 
+  // Light or Dark from Settings wins over the system appearance.
+  useEffect(() => {
+    const theme = state?.appearance;
+    if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    else delete document.documentElement.dataset.theme;
+  }, [state?.appearance]);
+
   // Save anything pending before the window closes.
   useEffect(() => api.onFlush(async () => void (await readerRef.current?.flush())), []);
 

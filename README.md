@@ -15,7 +15,7 @@ plain text files that belong to you.
 Open Terminal and run:
 
 ```sh
-npx github:Radyko/carrel
+npx @radyko/carrel
 ```
 
 The first time, this sets Carrel up as an app on your computer and opens it.
@@ -41,11 +41,13 @@ notes stay in `~/Carrel` either way.
 
    Each pass asks you a few pointed questions. Stopping after the first pass is
    normal; most papers don't need more.
-4. **Summarise from memory.** Carrel can hide the PDF while you write.
-5. **Review.** A week, a month and three months later, Carrel asks what you
+4. **Highlight as you go.** Select text in the PDF and pick a colour.
+5. **Summarise from memory.** Carrel can hide the PDF while you write.
+6. **Review.** A week, a month and three months later, Carrel asks what you
    remember, then shows you what you wrote at the time.
 
-Everything saves as you type.
+Everything saves as you type. Group papers into **collections**, one per
+course or project, and a paper can be in as many as you like.
 
 ## Your notes
 

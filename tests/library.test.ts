@@ -264,3 +264,19 @@ describe('collections', () => {
     expect(await fs.readFile(path.join(root, 'collections.yaml'), 'utf8')).toBe('collections: [broken\n');
   });
 });
+
+describe('highlights in notes.md', () => {
+  it('are saved under their own heading, found by search, and not shown as other notes', async () => {
+    const { id } = await lib.create({ meta: { title: 'Highlights' } }, guide);
+    const line = '- p. 2: “blocks of the KV cache” <!-- carrel id=a1 color=yellow rects=0.1,0.2,0.3,0.02 -->';
+    await lib.update(id, { highlights: line, notes: 'A note.' }, guide);
+    const text = await readNotes(id);
+    expect(text).toContain(`# Highlights\n\n${line}\n\n# Notes\n\nA note.`);
+    const doc = await lib.read(id, guide);
+    expect(doc.highlights).toBe(line);
+    expect(doc.other).toEqual([]);
+    const [summary] = await lib.scan(guide);
+    expect(summary.searchText).toContain('blocks of the KV cache');
+    expect(summary.searchText).not.toContain('carrel id=');
+  });
+});

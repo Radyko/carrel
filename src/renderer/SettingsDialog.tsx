@@ -100,6 +100,8 @@ export function SettingsDialog({ state, ...on }: Props) {
           <span>Hide or show the PDF</span>
           <kbd>{mod}= / {mod}− / {mod}0</kbd>
           <span>Zoom in, zoom out, fit to width</span>
+          <kbd>{mod}⇧H</kbd>
+          <span>Highlight the selected text</span>
           <kbd>{mod}I</kbd>
           <span>Edit details</span>
           <kbd>{mod}⇧R</kbd>
