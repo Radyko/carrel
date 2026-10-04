@@ -482,7 +482,7 @@ table.papers tr.row.selected td {
   color: var(--on-accent);
 }
 .table-wrap:focus-within tr.row.selected .muted,
-.table-wrap:focus-within tr.row.selected .stars,
+
 .table-wrap:focus-within tr.row.selected .dots {
   color: var(--on-accent);
 }
@@ -500,10 +500,6 @@ td.num {
 }
 .dots .off {
   opacity: 0.25;
-}
-.stars {
-  color: var(--accent);
-  letter-spacing: 1px;
 }
 
 .list-empty {
@@ -1163,20 +1159,6 @@ body.resizing .notes-side {
   margin-top: 36px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
-}
-.rating {
-  display: inline-flex;
-}
-.star {
-  border: 0;
-  background: transparent;
-  font-size: 16px;
-  padding: 0 1px;
-  color: var(--line-strong);
-  cursor: default;
-}
-.star.on {
-  color: var(--accent);
 }
 .other-notes {
   margin-top: 24px;

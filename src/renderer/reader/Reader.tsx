@@ -505,7 +505,6 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
               <SharedNotes
                 guide={guide}
                 notes={doc.notes}
-                rating={doc.meta.rating}
                 other={doc.other}
                 reviews={doc.reviews}
                 onNotes={setNotes}
@@ -515,7 +514,6 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                   setActive({ id: h.id, focus: false });
                   showHighlight(h);
                 }}
-                onRating={(rating) => changeMeta({ rating }, { immediate: true })}
               />
             </fieldset>
           </div>

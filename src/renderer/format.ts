@@ -51,6 +51,4 @@ export function splitList(text: string): string[] {
     .filter(Boolean);
 }
 
-export function stars(rating: number | null): string {
-  return rating ? '★'.repeat(rating) : '';
-}
+
