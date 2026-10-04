@@ -22,8 +22,15 @@ export function SettingsDialog({ state, ...on }: Props) {
   const mod = state.platform === 'darwin' ? '⌘' : 'Ctrl+';
   return (
     <Modal onClose={on.onClose} width={540}>
-      <h2>Settings</h2>
-      <p className="sub">Carrel {state.version}</p>
+      <header className="settings-head">
+        <div>
+          <h2>Settings</h2>
+          <p className="sub">Carrel {state.version}</p>
+        </div>
+        <button className="btn primary" onClick={on.onClose}>
+          Done
+        </button>
+      </header>
 
       <section className="settings-group">
         <h3>Look</h3>
@@ -128,11 +135,6 @@ export function SettingsDialog({ state, ...on }: Props) {
         </dl>
       </details>
 
-      <div className="buttons">
-        <button className="btn primary" onClick={on.onClose}>
-          Done
-        </button>
-      </div>
     </Modal>
   );
 }

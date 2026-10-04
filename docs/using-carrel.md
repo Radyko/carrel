@@ -11,9 +11,8 @@ paper's details and your summaries, so you can refresh your memory without
 opening it.
 
 - **Search** (⌘F) looks through titles, authors and everything you wrote.
-- **Hide the sidebar** with the button at the top of it (or ⌃⌘S) when you just
-  want the list. The same button, now at the top left of the list, brings it
-  back.
+- **Hide the sidebar** with the button at the top left (or ⌃⌘S) when you just
+  want the list. Click it again to bring the sidebar back.
 
 ## Adding papers
 
