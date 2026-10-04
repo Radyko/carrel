@@ -1,6 +1,7 @@
 // The API the preload script exposes to the interface as window.carrel.
 
 import type { Guide } from './guide';
+import type { Look } from './look';
 import type { NewPaperInput, PaperDoc, PaperPatch, PaperSummary } from './paper';
 
 export type Appearance = 'system' | 'light' | 'dark';
@@ -8,6 +9,7 @@ export type Appearance = 'system' | 'light' | 'dark';
 export interface AppState {
   libraryPath: string;
   appearance: Appearance;
+  look: Look;
   guide: Guide;
   guidePath: string;
   /** Plain-language description of a problem with the user's guide file. */
@@ -15,7 +17,20 @@ export interface AppState {
   guideMissing: boolean;
   platform: string;
   version: string;
+  /** How this copy of Carrel was installed, which decides how it updates. */
+  install: 'app' | 'source';
+  /** The command that installs the latest version, for people to type. */
+  updateCommand: string;
 }
+
+export type UpdateStatus =
+  | { state: 'checking' }
+  | { state: 'current'; version: string }
+  | { state: 'available'; version: string; latest: string }
+  | { state: 'offline' };
+
+/** The result of asking Carrel to update itself. */
+export type UpdateStart = { ok: true } | { ok: false; reason: string };
 
 export interface ChosenPdf {
   path: string;
@@ -83,6 +98,10 @@ export interface CarrelApi {
   reloadGuide(): Promise<AppState>;
   openLink(url: string): Promise<void>;
   setAppearance(appearance: Appearance): Promise<AppState>;
+  setLook(look: Partial<Look>): Promise<AppState>;
+  checkForUpdate(): Promise<UpdateStatus>;
+  /** Quits, updates, and opens the new version. Resolves only if that couldn't start. */
+  installUpdate(): Promise<UpdateStart>;
   /** Called when the window enters or leaves full screen. */
   onFullScreen(handler: (fullScreen: boolean) => void): () => void;
   onMenu(handler: (action: MenuAction) => void): () => void;

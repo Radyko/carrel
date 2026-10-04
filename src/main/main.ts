@@ -1,19 +1,23 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, screen, shell } from 'electron';
+import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { AppState, ChosenPdf, ContextAction, PaperMenuOptions } from '../shared/api';
 import type { NewPaperInput, PaperPatch } from '../shared/paper';
 import { buildMenu } from './menu';
+import { normalizeLook } from '../shared/look';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { loadGuide, restoreDefaultGuide, type LoadedGuide } from './storage/guideFile';
 import { Library } from './storage/library';
+import { checkForUpdate, installKind, installUpdate, updateCommand } from './updates';
 
 const APP_SCHEME = 'carrel';
 const appRoot = path.join(__dirname, '..', '..', '..');
 const rendererDir = path.join(appRoot, 'dist', 'renderer');
 const defaultGuidePath = path.join(appRoot, 'guide', 'default-guide.yaml');
 const iconPath = path.join(appRoot, 'assets', 'icon.png');
+const packageName = (JSON.parse(fsSync.readFileSync(path.join(appRoot, 'package.json'), 'utf8')) as { name: string }).name;
 
 protocol.registerSchemesAsPrivileged([
   { scheme: APP_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -25,6 +29,8 @@ let mainWindow: BrowserWindow | null = null;
 let settings: Settings;
 let library: Library;
 let loadedGuide: LoadedGuide;
+let quitting = false;
+app.on('before-quit', () => (quitting = true));
 
 async function openLibrary(libraryPath: string): Promise<void> {
   library = new Library(libraryPath);
@@ -41,12 +47,15 @@ function state(): AppState {
   return {
     libraryPath: library.root,
     appearance: settings.appearance,
+    look: settings.look,
     guide: loadedGuide.guide,
     guidePath: loadedGuide.path,
     guideProblem: loadedGuide.problem,
     guideMissing: loadedGuide.missing,
     platform: process.platform,
     version: app.getVersion(),
+    install: installKind(),
+    updateCommand: updateCommand(packageName),
   };
 }
 
@@ -198,15 +207,38 @@ function registerIpc(): void {
     await saveSettings(settings);
     return state();
   });
+  ipcMain.handle('settings:look', async (_e, look: Partial<Settings['look']>) => {
+    settings.look = normalizeLook({ ...settings.look, ...look });
+    await saveSettings(settings);
+    return state();
+  });
+  ipcMain.handle('update:check', () => checkForUpdate(packageName));
+  ipcMain.handle('update:install', () => installUpdate(packageName));
   ipcMain.handle('shell:open-link', async (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) await shell.openExternal(url);
   });
+}
+
+/** True when a newer Carrel has been installed over this one while it runs. */
+function replacedOnDisk(): boolean {
+  try {
+    const onDisk = JSON.parse(fsSync.readFileSync(path.join(appRoot, 'package.json'), 'utf8')) as { version?: string };
+    return onDisk.version !== app.getVersion();
+  } catch {
+    return false;
+  }
 }
 
 function serveRenderer(): void {
   protocol.handle(APP_SCHEME, (request) => {
     const url = new URL(request.url);
     const relative = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
+    // The new version's screens need the new version's main process: restart into it.
+    if (relative === 'index.html' && replacedOnDisk()) {
+      app.relaunch();
+      app.exit(0);
+      return new Response('Restarting', { status: 503 });
+    }
     const filePath = path.normalize(path.join(rendererDir, relative));
     if (!filePath.startsWith(rendererDir + path.sep)) {
       return new Response('Not found', { status: 404 });
@@ -275,6 +307,8 @@ function createWindow(): void {
       flushed = true;
       ipcMain.removeListener('app:flushed', onFlushed);
       win.close();
+      // Holding the window open to save cancels a quit, so quit again.
+      if (quitting) app.quit();
     };
     const onFlushed = (e: Electron.IpcMainEvent) => {
       if (e.sender === win.webContents) done();

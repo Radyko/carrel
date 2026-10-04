@@ -27,6 +27,9 @@ const api: CarrelApi = {
   reloadGuide: () => ipcRenderer.invoke('guide:reload'),
   openLink: (url) => ipcRenderer.invoke('shell:open-link', url),
   setAppearance: (appearance) => ipcRenderer.invoke('settings:appearance', appearance),
+  setLook: (look) => ipcRenderer.invoke('settings:look', look),
+  checkForUpdate: () => ipcRenderer.invoke('update:check'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
   onFullScreen: (handler) => {
     const listener = (_: unknown, fullScreen: boolean) => handler(fullScreen);
     ipcRenderer.on('window:full-screen', listener);

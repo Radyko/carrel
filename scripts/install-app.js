@@ -116,6 +116,53 @@ function isWritable(dir) {
   }
 }
 
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * Makes sure no copy of the installed app is running before its files are
+ * replaced. A copy left running would go on with its old code while loading
+ * the new version's screens, which don't work with it.
+ */
+function stopRunning(target, log) {
+  const exe = process.platform === 'darwin' ? path.join(target, 'Contents', 'MacOS') + '/' : path.join(target, 'electron');
+  const running = () => {
+    try {
+      return run('pgrep', ['-f', exe]).trim() !== '';
+    } catch {
+      return false; // pgrep exits 1 when nothing matches
+    }
+  };
+  if (!running()) return;
+  log('Closing the open copy of Carrel');
+  if (process.platform === 'darwin') {
+    // Ask politely, so it saves first. Versions before 0.4 close their window
+    // on the first request but keep running, so ask again.
+    for (let i = 0; i < 24 && running(); i++) {
+      if (i % 4 === 0) {
+        try {
+          run('osascript', ['-e', `if application "${NAME}" is running then tell application "${NAME}" to quit`]);
+        } catch {
+          /* no permission to ask; fall through to stopping it below */
+        }
+      }
+      sleep(500);
+    }
+  }
+  if (running()) {
+    try {
+      run('pkill', ['-TERM', '-f', exe]);
+    } catch {
+      /* already gone */
+    }
+    for (let i = 0; i < 20 && running(); i++) sleep(250);
+  }
+  if (running()) {
+    throw Object.assign(new Error('Carrel is still open. Quit it, then run this command again.'), { code: 'STILL_OPEN' });
+  }
+}
+
 function installMac(log) {
   const dist = electronDist();
   const existing = installedApp();
@@ -164,12 +211,7 @@ function installMac(log) {
     log('Signing it for this Mac');
     run('codesign', ['--force', '--deep', '--sign', '-', staging]);
 
-    // Quit a running copy before replacing it. "is running" never launches the app.
-    try {
-      run('osascript', ['-e', `if application "${NAME}" is running then tell application "${NAME}" to quit`]);
-    } catch {
-      /* not running, or no permission to ask: replacing still works */
-    }
+    stopRunning(target, log);
 
     log(`Installing to ${target}`);
     fs.rmSync(target, { recursive: true, force: true });
@@ -191,6 +233,7 @@ function installLinux(log) {
   const target = path.join(share, 'carrel');
   const staging = `${target}.new`;
 
+  stopRunning(target, log);
   log('Assembling Carrel');
   fs.rmSync(staging, { recursive: true, force: true });
   fs.cpSync(dist, staging, { recursive: true, verbatimSymlinks: true });
