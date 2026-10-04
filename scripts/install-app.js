@@ -1,16 +1,16 @@
-#!/usr/bin/env node
-// Installs Carrel as a standalone app from a built checkout:
+// Installs Carrel as a standalone app:
 //   macOS: Carrel.app in /Applications (or ~/Applications)
 //   Linux: ~/.local/share/carrel, with a menu entry and a `carrel` launcher
 //
-// The app is a copy of Electron with Carrel inside it, so it no longer needs
-// this folder, Node or npm once installed. Your papers and notes in ~/Carrel
-// are never touched. Run it again to update.
+// The app is a copy of Electron with Carrel inside it, so once installed it
+// needs neither this folder nor Node. Your papers and notes in ~/Carrel are
+// never touched. Installing again replaces the app (that is how updates work).
 //
-// Usage: node scripts/install-app.js [--open]
+// The `carrel` command uses this on first run. To run it by hand from a
+// checkout: npm run install-app
 'use strict';
 
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -18,38 +18,65 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const NAME = 'Carrel';
-const openAfter = process.argv.includes('--open');
 
-function fail(message) {
-  console.error(`\n${message}\n`);
-  process.exit(1);
+function run(cmd, args) {
+  return execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
 }
 
-function step(message) {
-  console.log(`  ${message}`);
+function readVersion(appDir) {
+  try {
+    const p = JSON.parse(fs.readFileSync(path.join(appDir, 'package.json'), 'utf8'));
+    return p.name === pkg.name ? p.version : null;
+  } catch {
+    return null;
+  }
 }
 
-function run(cmd, args, options = {}) {
-  return execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options }).toString();
+/** The installed app, if there is one: where it is, its version, and how to open it. */
+function installedApp() {
+  if (process.platform === 'darwin') {
+    for (const dir of ['/Applications', path.join(os.homedir(), 'Applications')]) {
+      const app = path.join(dir, `${NAME}.app`);
+      const version = readVersion(path.join(app, 'Contents', 'Resources', 'app'));
+      if (version) return { path: app, version };
+    }
+  } else if (process.platform === 'linux') {
+    const dir = path.join(os.homedir(), '.local', 'share', 'carrel');
+    const version = readVersion(path.join(dir, 'resources', 'app'));
+    if (version) return { path: dir, version, exe: path.join(dir, 'electron') };
+  }
+  return null;
 }
 
-if (!fs.existsSync(path.join(root, 'dist', 'node', 'main', 'main.js'))) {
-  fail('Carrel has not been built yet. Run `npm run build` first.');
+function canInstall() {
+  return process.platform === 'darwin' || process.platform === 'linux';
+}
+
+/** Opens the installed app without waiting for it. */
+function openInstalled(extraArgs = []) {
+  const app = installedApp();
+  if (!app) throw new Error('Carrel is not installed as an app.');
+  const child =
+    process.platform === 'darwin'
+      ? spawn('open', [app.path, ...(extraArgs.length ? ['--args', ...extraArgs] : [])], { detached: true, stdio: 'ignore' })
+      : spawn(app.exe, extraArgs, { detached: true, stdio: 'ignore' });
+  child.unref();
 }
 
 /** The folder holding the Electron binary, downloading it if needed. */
 function electronDist() {
-  try {
-    // Requiring electron from Node returns the binary's path and downloads it on first use.
-    require(path.join(root, 'node_modules', 'electron'));
-  } catch (err) {
-    fail(`Could not get Electron: ${err.message}`);
-  }
-  return path.join(root, 'node_modules', 'electron', 'dist');
+  // Installed by npm or npx, electron may sit beside Carrel rather than inside it.
+  const dir = path.dirname(require.resolve('electron/package.json', { paths: [root] }));
+  // Requiring electron from Node returns the binary's path and downloads it on first use.
+  require(dir);
+  return path.join(dir, 'dist');
 }
 
 /** Copies the built app and its runtime dependencies into an Electron resources/app folder. */
 function copyApp(dest) {
+  if (!fs.existsSync(path.join(root, 'dist', 'node', 'main', 'main.js'))) {
+    throw new Error('Carrel has not been built yet. Run `npm run build` first.');
+  }
   fs.mkdirSync(dest, { recursive: true });
   for (const item of ['dist/node', 'dist/renderer', 'guide', 'assets']) {
     fs.cpSync(path.join(root, item), path.join(dest, item), {
@@ -59,16 +86,15 @@ function copyApp(dest) {
   }
   const runtimeDeps = Object.keys(pkg.dependencies ?? {}).filter((d) => d !== 'electron');
   const copied = new Set();
-  const copyDep = (name) => {
+  const copyDep = (name, from) => {
     if (copied.has(name)) return;
     copied.add(name);
-    const src = path.join(root, 'node_modules', name);
-    if (!fs.existsSync(src)) fail(`Missing dependency ${name}. Run \`npm install\` first.`);
+    const src = path.dirname(require.resolve(`${name}/package.json`, { paths: [from] }));
     fs.cpSync(src, path.join(dest, 'node_modules', name), { recursive: true });
     const depPkg = JSON.parse(fs.readFileSync(path.join(src, 'package.json'), 'utf8'));
-    Object.keys(depPkg.dependencies ?? {}).forEach(copyDep);
+    for (const d of Object.keys(depPkg.dependencies ?? {})) copyDep(d, src);
   };
-  runtimeDeps.forEach(copyDep);
+  for (const d of runtimeDeps) copyDep(d, root);
   const appPkg = {
     name: pkg.name,
     productName: pkg.productName ?? NAME,
@@ -90,16 +116,21 @@ function isWritable(dir) {
   }
 }
 
-function installMac() {
+function installMac(log) {
   const dist = electronDist();
-  const applications = isWritable('/Applications') ? '/Applications' : path.join(os.homedir(), 'Applications');
+  const existing = installedApp();
+  const applications = existing
+    ? path.dirname(existing.path)
+    : isWritable('/Applications')
+      ? '/Applications'
+      : path.join(os.homedir(), 'Applications');
   fs.mkdirSync(applications, { recursive: true });
   const target = path.join(applications, `${NAME}.app`);
   const work = fs.mkdtempSync(path.join(os.tmpdir(), 'carrel-app-'));
   const staging = path.join(work, `${NAME}.app`);
 
   try {
-    step('Assembling Carrel.app');
+    log('Assembling Carrel.app');
     run('ditto', [path.join(dist, 'Electron.app'), staging]);
     const resources = path.join(staging, 'Contents', 'Resources');
     fs.rmSync(path.join(resources, 'default_app.asar'), { force: true });
@@ -117,7 +148,7 @@ function installMac() {
       run('plutil', ['-replace', key, '-string', value, plist]);
     }
 
-    step('Making the icon');
+    log('Making the icon');
     const iconset = path.join(work, 'carrel.iconset');
     fs.mkdirSync(iconset);
     const png = path.join(root, 'assets', 'icon.png');
@@ -130,7 +161,7 @@ function installMac() {
     // Changing the bundle invalidates Electron's signature; sign it again for
     // this computer only (an ad-hoc signature), which macOS accepts for apps
     // built locally.
-    step('Signing it for this Mac');
+    log('Signing it for this Mac');
     run('codesign', ['--force', '--deep', '--sign', '-', staging]);
 
     // Quit a running copy before replacing it. "is running" never launches the app.
@@ -140,7 +171,7 @@ function installMac() {
       /* not running, or no permission to ask: replacing still works */
     }
 
-    step(`Installing to ${target}`);
+    log(`Installing to ${target}`);
     fs.rmSync(target, { recursive: true, force: true });
     run('ditto', [staging, target]);
     try {
@@ -151,19 +182,16 @@ function installMac() {
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
-
-  console.log(`\n✓ Carrel is installed in ${applications}.`);
-  console.log('  Open it from Launchpad or Spotlight, or keep it in the Dock.\n');
-  if (openAfter) run('open', [target]);
+  return target;
 }
 
-function installLinux() {
+function installLinux(log) {
   const dist = electronDist();
   const share = path.join(os.homedir(), '.local', 'share');
   const target = path.join(share, 'carrel');
   const staging = `${target}.new`;
 
-  step('Assembling Carrel');
+  log('Assembling Carrel');
   fs.rmSync(staging, { recursive: true, force: true });
   fs.cpSync(dist, staging, { recursive: true, verbatimSymlinks: true });
   fs.rmSync(path.join(staging, 'resources', 'default_app.asar'), { force: true });
@@ -192,16 +220,26 @@ function installLinux() {
       '',
     ].join('\n'),
   );
-
-  console.log(`\n✓ Carrel is installed in ${target}.`);
-  console.log('  Open it from your applications menu, or run `carrel`.\n');
-  if (openAfter) {
-    const child = require('node:child_process').spawn(exe, [], { detached: true, stdio: 'ignore' });
-    child.unref();
-  }
+  return target;
 }
 
-console.log(`\nInstalling Carrel ${pkg.version}`);
-if (process.platform === 'darwin') installMac();
-else if (process.platform === 'linux') installLinux();
-else fail('Installing Carrel as an app works on macOS and Linux for now. On Windows, run it with `npm start`.');
+/** Installs (or updates) the app and returns where it went. */
+function install({ verbose = false } = {}) {
+  const log = verbose ? (m) => console.log(`  ${m}`) : () => {};
+  if (process.platform === 'darwin') return installMac(log);
+  if (process.platform === 'linux') return installLinux(log);
+  throw new Error('Installing Carrel as an app works on macOS and Linux for now.');
+}
+
+module.exports = { install, installedApp, openInstalled, canInstall, version: pkg.version };
+
+if (require.main === module) {
+  try {
+    console.log(`Installing Carrel ${pkg.version}`);
+    const where = install({ verbose: true });
+    console.log(`\n✓ Carrel is installed: ${where}\n`);
+  } catch (err) {
+    console.error(`\n${err.message}\n`);
+    process.exit(1);
+  }
+}

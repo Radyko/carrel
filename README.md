@@ -12,20 +12,19 @@ plain text files that belong to you.
 
 ## Install
 
-Open Terminal and paste:
+Open Terminal and run:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Radyko/carrel/main/install.sh | bash
+npx github:Radyko/carrel
 ```
 
-That's it. Carrel opens when it's done, and from then on it's in your
-Applications folder like any other app: find it with Spotlight or Launchpad,
-or keep it in the Dock.
+The first time, this sets Carrel up as an app on your computer and opens it.
+From then on it's in your Applications folder like any other app: open it with
+Spotlight or Launchpad, or keep it in the Dock.
 
-You need [Node.js](https://nodejs.org) 22.12 or later to install it (check with
-`node -v`; if you use Homebrew, `brew install node`). Installing takes a minute
-or two. It works on macOS, and on Linux it adds Carrel to your applications
-menu.
+You need [Node.js](https://nodejs.org) 22.12 or later (check with `node -v`; with
+Homebrew, `brew install node`). It works on macOS, and on Linux it adds Carrel
+to your applications menu.
 
 To **update**, run the same command again. To **uninstall**, move Carrel from
 Applications to the Trash (on Linux, delete `~/.local/share/carrel`). Your

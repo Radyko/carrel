@@ -37,8 +37,8 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "prepublishOnly": "npm run typecheck && npm test",
-    "prepack": "npm run build",
-    "install-app": "npm run build && node scripts/install-app.js"
+    "install-app": "npm run build && node scripts/install-app.js",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "electron": "^44.5.1",
