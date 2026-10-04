@@ -7,6 +7,7 @@ const h = (over: Partial<Highlight>): Highlight => ({
   color: 'yellow',
   text: 'text',
   rects: [[0.1, 0.2, 0.3, 0.02]],
+  note: '',
   ...over,
 });
 
@@ -33,7 +34,7 @@ describe('highlights', () => {
       '- p. 3: “edited by hand” <!-- carrel id=x color=purple rects=bad -->',
     ].join('\n');
     const p = parseHighlights(text);
-    expect(p.items).toEqual([{ id: 'x', page: 3, color: 'yellow', text: 'edited by hand', rects: [] }]);
+    expect(p.items).toEqual([{ id: 'x', page: 3, color: 'yellow', text: 'edited by hand', rects: [], note: '' }]);
     expect(p.extra).toBe('My own remark about these.');
     expect(formatHighlights(p)).toContain('My own remark about these.');
   });
@@ -48,5 +49,33 @@ describe('highlights', () => {
     expect(merged[0][0]).toBeCloseTo(0.1);
     expect(merged[0][2]).toBeCloseTo(0.205);
     expect(merged[1]).toEqual([0.1, 0.23, 0.3, 0.02]);
+  });
+});
+
+describe('highlight notes', () => {
+  it('are written indented under their quote and read back exactly', () => {
+    const note = 'Like virtual memory paging.\n\nCompare with section 4:\n- point one\n  - nested';
+    const items = [h({ id: 'a1', page: 1, note }), h({ id: 'b2', page: 2 })];
+    const text = formatHighlights({ items, extra: '' });
+    expect(text).toBe(
+      [
+        '- p. 1: “text” <!-- carrel id=a1 color=yellow rects=0.1,0.2,0.3,0.02 -->',
+        '  Like virtual memory paging.',
+        '',
+        '  Compare with section 4:',
+        '  - point one',
+        '    - nested',
+        '- p. 2: “text” <!-- carrel id=b2 color=yellow rects=0.1,0.2,0.3,0.02 -->',
+      ].join('\n'),
+    );
+    const back = parseHighlights(text);
+    expect(back.items.map((i) => i.note)).toEqual([note, '']);
+    expect(back.extra).toBe('');
+  });
+
+  it('do not swallow unindented text that follows', () => {
+    const p = parseHighlights('- p. 1: “q” <!-- carrel id=a -->\n  my note\n\nA paragraph of my own.');
+    expect(p.items[0].note).toBe('my note');
+    expect(p.extra).toBe('A paragraph of my own.');
   });
 });

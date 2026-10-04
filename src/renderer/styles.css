@@ -694,7 +694,8 @@ button.chip:hover {
   flex-direction: column;
   min-height: 0;
 }
-.app.window-buttons .toolbar.inset {
+.app.window-buttons .toolbar.inset,
+.app.window-buttons .list-pane .toolbar.inset {
   /* Room for the macOS window buttons, which are hidden in full screen. */
   padding-left: 84px;
 }
@@ -1350,27 +1351,6 @@ body.resizing .notes-side {
   height: 16px;
   background: var(--line-strong);
 }
-.hl-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: start;
-  padding: 6px 0 6px 10px;
-  border-left: 3px solid var(--hl-yellow);
-  margin-top: 8px;
-}
-.hl-item p {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
-}
-.hl-page {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font-size: 12px;
-  white-space: nowrap;
-}
 .hl-edge-green {
   border-left-color: var(--hl-green);
 }
@@ -1379,4 +1359,137 @@ body.resizing .notes-side {
 }
 .hl-edge-pink {
   border-left-color: var(--hl-pink);
+}
+
+/* Active highlight and note markers on the page. The layer is translucent,
+   so these use solid colours. */
+.carrel-highlights .hl.active {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
+}
+.hl-note-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 4px;
+  filter: saturate(1.6) brightness(0.8);
+}
+
+/* The note card beside the paper */
+.hl-card {
+  flex: none;
+  margin: 10px 14px 0;
+  padding: 10px 12px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--hl-yellow);
+  background: var(--bg-subtle);
+  max-height: 45%;
+  overflow-y: auto;
+}
+.hl-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.hl-card-quote {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+.hl-card-quote:hover {
+  color: var(--text);
+}
+textarea.hl-card-note {
+  margin-top: 8px;
+  background: var(--bg-field);
+}
+.hl-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.hl-card-foot .spacer {
+  flex: 1;
+}
+.hl-card-colors {
+  display: inline-flex;
+  gap: 5px;
+}
+.hl-dot.small {
+  width: 13px;
+  height: 13px;
+  border-width: 1.5px;
+}
+
+/* The list of highlights under the questions */
+.hl-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px 6px 10px;
+  border: 0;
+  border-left: 3px solid var(--hl-yellow);
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  text-align: left;
+  cursor: default;
+}
+.hl-item:hover {
+  background: var(--bg-hover);
+}
+.hl-item.active {
+  background: var(--accent-soft);
+}
+.hl-quote {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.hl-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+.hl-card.hl-edge-green,
+.hl-item.hl-edge-green {
+  border-left-color: var(--hl-green);
+}
+.hl-card.hl-edge-blue,
+.hl-item.hl-edge-blue {
+  border-left-color: var(--hl-blue);
+}
+.hl-card.hl-edge-pink,
+.hl-item.hl-edge-pink {
+  border-left-color: var(--hl-pink);
+}
+
+/* Sidebar toggle */
+.sidebar-toggle {
+  color: var(--text-2);
+}
+.sidebar-toggle.on {
+  color: var(--accent-text);
+}
+.current-filter {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  -webkit-app-region: drag;
 }

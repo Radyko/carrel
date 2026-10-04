@@ -47,6 +47,23 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try {
+      return localStorage.getItem('carrel.sidebar') !== 'closed';
+    } catch {
+      return true;
+    }
+  });
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((open) => {
+      try {
+        localStorage.setItem('carrel.sidebar', open ? 'closed' : 'open');
+      } catch {
+        /* only a convenience */
+      }
+      return !open;
+    });
+  }, []);
   const [today, setToday] = useState(localDate());
   const searchRef = useRef<HTMLInputElement>(null);
   const readerRef = useRef<ReaderHandle>(null);
@@ -381,6 +398,9 @@ export function App() {
         return addEntry();
       case 'settings':
         return setSettingsOpen(true);
+      case 'toggle-sidebar':
+        if (view.screen === 'library') toggleSidebar();
+        return;
       case 'library':
         return void backToLibrary();
       case 'review':
@@ -504,6 +524,8 @@ export function App() {
           onTrash={trash}
           onContextMenu={contextMenu}
           onSettings={() => setSettingsOpen(true)}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={toggleSidebar}
         />
       )}
       {view.screen === 'reader' && (

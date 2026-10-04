@@ -253,8 +253,8 @@ export function SharedNotes({
   onNotes,
   onRating,
   highlights,
-  onJumpToHighlight,
-  onDeleteHighlight,
+  activeHighlightId,
+  onOpenHighlight,
 }: {
   guide: Guide;
   notes: string;
@@ -264,8 +264,8 @@ export function SharedNotes({
   onNotes: (v: string) => void;
   onRating: (v: number | null) => void;
   highlights: Highlight[];
-  onJumpToHighlight: (h: Highlight) => void;
-  onDeleteHighlight: (id: string) => void;
+  activeHighlightId: string | null;
+  onOpenHighlight: (h: Highlight) => void;
 }) {
   return (
     <section className="shared">
@@ -275,15 +275,18 @@ export function SharedNotes({
             {guide.highlightsHeading} ({highlights.length})
           </summary>
           {highlights.map((h) => (
-            <div key={h.id} className={`hl-item hl-edge-${h.color}`}>
-              <button className="hl-page link" onClick={() => onJumpToHighlight(h)} title="Show in the PDF">
-                p. {h.page}
-              </button>
-              <p className="selectable">{h.text}</p>
-              <button className="btn quiet icon small" title="Remove highlight" onClick={() => onDeleteHighlight(h.id)}>
-                ×
-              </button>
-            </div>
+            <button
+              key={h.id}
+              className={`hl-item hl-edge-${h.color}${h.id === activeHighlightId ? ' active' : ''}`}
+              onClick={() => onOpenHighlight(h)}
+              title="Open this highlight"
+            >
+              <span className="hl-quote">
+                <span className="muted">p. {h.page} · </span>
+                {h.text}
+              </span>
+              {h.note.trim() && <span className="hl-note">{h.note}</span>}
+            </button>
           ))}
         </details>
       )}

@@ -61,6 +61,7 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
       label: 'View',
       submenu: [
         item('Library', 'library', 'CmdOrCtrl+L'),
+        item('Show or Hide Sidebar', 'toggle-sidebar', isMac ? 'Ctrl+Cmd+S' : 'Ctrl+Alt+S'),
         { type: 'separator' },
         item('Purpose', 'tab-1', 'CmdOrCtrl+1'),
         item('Pass 1', 'tab-2', 'CmdOrCtrl+2'),

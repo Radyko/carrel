@@ -2,10 +2,13 @@
 //
 //   - p. 4: “PagedAttention divides the KV cache into blocks” <!-- carrel id=k3f9 color=yellow rects=0.112,0.341,0.402,0.012 -->
 //
+//     A note about it, indented under the quote.
+//
 // The quote and page are readable anywhere; the comment (hidden when the
 // markdown is rendered) holds where the highlight sits on the page, as
-// fractions of the page's width and height. Deleting a line in an editor
-// deletes the highlight. Lines in any other form are kept as they are.
+// fractions of the page's width and height. Your note on a highlight follows
+// it, indented by two spaces. Deleting a line in an editor deletes the
+// highlight. Lines in any other form are kept as they are.
 
 export const HIGHLIGHT_COLORS = ['yellow', 'green', 'blue', 'pink'] as const;
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
@@ -19,6 +22,8 @@ export interface Highlight {
   color: HighlightColor;
   text: string;
   rects: Rect[];
+  /** Your note on the highlight; may be empty. */
+  note: string;
 }
 
 export interface ParsedHighlights {
@@ -43,11 +48,22 @@ function round(n: number): number {
 export function parseHighlights(text: string): ParsedHighlights {
   const items: Highlight[] = [];
   const extra: string[] = [];
-  for (const line of text.split('\n')) {
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const m = LINE.exec(line);
     if (!m) {
       if (line.trim()) extra.push(line);
       continue;
+    }
+    // The note: indented lines after the highlight, including blank lines between them.
+    const noteLines: string[] = [];
+    while (i + 1 < lines.length) {
+      const next = lines[i + 1];
+      if (/^ {2,}\S/.test(next) || /^\t\S/.test(next)) noteLines.push(next.replace(/^( {2}|\t)/, ''));
+      else if (!next.trim() && i + 2 < lines.length && /^( {2,}|\t)\S/.test(lines[i + 2])) noteLines.push('');
+      else break;
+      i++;
     }
     const attrs = Object.fromEntries(
       m[3].split(/\s+/).map((pair) => {
@@ -67,6 +83,7 @@ export function parseHighlights(text: string): ParsedHighlights {
       color,
       text: m[2].replace(/^[“"]/, '').replace(/[”"]$/, ''),
       rects,
+      note: noteLines.join('\n').trim(),
     });
   }
   return { items, extra: extra.join('\n') };
@@ -81,7 +98,14 @@ export function sortHighlights(items: Highlight[]): Highlight[] {
 export function formatHighlights(p: ParsedHighlights): string {
   const lines = sortHighlights(p.items).map((h) => {
     const rects = h.rects.map((r) => r.map(round).join(',')).join(';');
-    return `- p. ${h.page}: “${cleanQuote(h.text)}” <!-- carrel id=${h.id} color=${h.color} rects=${rects} -->`;
+    const line = `- p. ${h.page}: “${cleanQuote(h.text)}” <!-- carrel id=${h.id} color=${h.color} rects=${rects} -->`;
+    const note = h.note
+      .replace(/\r\n/g, '\n')
+      .trim()
+      .split('\n')
+      .map((l) => (l.trim() ? `  ${l}` : ''))
+      .join('\n');
+    return note ? `${line}\n${note}` : line;
   });
   return [lines.join('\n'), p.extra.trim()].filter(Boolean).join('\n\n');
 }

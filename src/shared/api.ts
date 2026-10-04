@@ -43,7 +43,8 @@ export type MenuAction =
   | 'zoom-in'
   | 'zoom-out'
   | 'fit-width'
-  | 'highlight';
+  | 'highlight'
+  | 'toggle-sidebar';
 
 export type ContextAction = 'open' | 'reveal' | 'edit' | 'trash' | 'review' | 'new-collection' | `toggle:${string}`;
 

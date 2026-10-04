@@ -54,7 +54,7 @@ describe('library', () => {
         terms: '- **SIMT**: single instruction, multiple threads',
         background: 'Read about caches first.',
       },
-      pass3: { connections: '# Section 3 is X\n```\ncode # here\n```' },
+      pass3: { ideas: '# Section 3 is X\n```\ncode # here\n```' },
     };
     const meta = {
       authors: ['Ada Lovelace', 'Charles Babbage'],
@@ -133,12 +133,12 @@ describe('library', () => {
 
   it('keeps answers under headings the guide no longer has, shown as other notes', async () => {
     const { id } = await lib.create({ meta: { title: 'Guide change' } }, guide);
-    await lib.update(id, { answers: { pass1: { clarity: 'Very clear.' } } }, guide);
+    await lib.update(id, { answers: { pass1: { correctness: 'Seems sound.' } } }, guide);
     const changed: Guide = structuredClone(guide);
-    changed.passes[0].questions = changed.passes[0].questions.filter((q) => q.id !== 'clarity');
+    changed.passes[0].questions = changed.passes[0].questions.filter((q) => q.id !== 'correctness');
     const doc = await lib.update(id, { answers: { pass1: { category: 'Survey' } } }, changed);
-    expect(doc.other).toEqual([{ heading: 'Pass 1: Survey › Clarity', text: 'Very clear.' }]);
-    expect(await readNotes(id)).toContain('## Clarity\n\nVery clear.');
+    expect(doc.other).toEqual([{ heading: 'Pass 1: Survey › Correctness', text: 'Seems sound.' }]);
+    expect(await readNotes(id)).toContain('## Correctness\n\nSeems sound.');
   });
 
   it('applies changes to the latest file on disk, keeping edits made elsewhere', async () => {
@@ -157,7 +157,7 @@ describe('library', () => {
 
   it('serialises concurrent saves without losing any', async () => {
     const { id } = await lib.create({ meta: { title: 'Concurrent' } }, guide);
-    const ids = ['category', 'context', 'correctness', 'contributions', 'clarity'];
+    const ids = ['category', 'context', 'correctness', 'contributions', 'summary'];
     await Promise.all(ids.map((q) => lib.update(id, { answers: { pass1: { [q]: `answer ${q}` } } }, guide)));
     const doc = await lib.read(id, guide);
     for (const q of ids) expect(doc.answers.pass1[q]).toBe(`answer ${q}`);
@@ -278,5 +278,24 @@ describe('highlights in notes.md', () => {
     const [summary] = await lib.scan(guide);
     expect(summary.searchText).toContain('blocks of the KV cache');
     expect(summary.searchText).not.toContain('carrel id=');
+  });
+});
+
+describe('highlight notes in notes.md', () => {
+  it('round-trip, even with heading-like lines, and are searchable', async () => {
+    const { formatHighlights, parseHighlights } = await import('../src/shared/highlights');
+    const { id } = await lib.create({ meta: { title: 'Notes on highlights' } }, guide);
+    const note = '# not a heading\nwarp divergence matters';
+    const text = formatHighlights({
+      items: [{ id: 'a1', page: 1, color: 'green', text: 'quote', rects: [[0.1, 0.1, 0.2, 0.02]], note }],
+      extra: '',
+    });
+    await lib.update(id, { highlights: text }, guide);
+    const doc = await lib.read(id, guide);
+    expect(parseHighlights(doc.highlights).items[0].note).toBe(note);
+    expect(doc.other).toEqual([]);
+    expect((await readNotes(id)).split('\n').filter((l) => /^#{1,2} /.test(l))).not.toContain('# not a heading');
+    const [summary] = await lib.scan(guide);
+    expect(summary.searchText).toContain('warp divergence matters');
   });
 });

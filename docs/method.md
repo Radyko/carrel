@@ -23,9 +23,9 @@ In practice, every paper goes through:
 | Stage | Target | What you do |
 | --- | --- | --- |
 | **Purpose** | under a minute | Choose why you are reading (assigned for a course, surveying an area, might build on it, reviewing or presenting it, curiosity) and write one to three questions of your own. The purpose suggests a depth; it never enforces one. |
-| **Pass 1: Survey** | 5 to 10 minutes | Title, abstract, conclusion, figures, headings, references. Answer the five Cs (Category, Context, Correctness, Contributions, Clarity), then summarise from memory. Decide: continue, come back later, or stop here. |
-| **Pass 2: Comprehend** | up to 1 hour | Read with care, skipping proofs. Answer Problem, Approach, Results, Conclusion. Note figures, references to chase, and terms you didn't know. Summarise from memory as if explaining it to a classmate, then check whether you got what you came for. |
-| **Pass 3: Reconstruct** | 1 to 5 hours | Re-create the work: assumptions, alternatives, strengths, weaknesses, how you would have done it, future work, and connections to other papers. |
+| **Pass 1: Survey** | 5 to 10 minutes | Skim the title, abstract, introduction, conclusion, headings, figures and references. Answer four quick questions (Category, Context, Correctness, Contributions), then summarise from memory. Decide: continue, come back later, or stop here. |
+| **Pass 2: Comprehend** | up to 1 hour | Read it all, skipping proofs and fine detail. Answer Problem, Approach, Results, Conclusion; note references to chase and terms you didn't know. Summarise from memory as if explaining it to a friend, then check whether you got what you came for. |
+| **Pass 3: Reconstruct** | 1 to 5 hours | Rebuild the work in your head: its assumptions, its strengths and weaknesses, what you would do differently, and how it connects to other work. |
 | **Review** | about two minutes | A week, a month and three months after you finish a paper at pass 2 or 3, write what you remember without opening it, then compare with your saved summaries. |
 
 The method is a default, not a law: it lives in an editable file (see

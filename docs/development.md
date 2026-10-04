@@ -23,6 +23,11 @@ The package is published to npm as `@radyko/carrel` (npm refused the plain
 name `carrel` as too similar to `parcel`), so people run `npx @radyko/carrel`.
 To release a new version: `npm version minor` (or `patch`), then `npm publish`.
 
+If you change `guide/default-guide.yaml`, add the SHA-256 of the *previous*
+default (`git show HEAD:guide/default-guide.yaml | shasum -a 256`) to
+`PREVIOUS_DEFAULTS` in `src/main/storage/guideFile.ts`. People who never edited
+their guide then get the new one automatically.
+
 `npx github:Radyko/carrel` also works, without publishing, because the
 `prepare` script builds the package when npm fetches it from GitHub. Add
 `#branch-name` to try a branch: `npx github:Radyko/carrel#some-branch`.

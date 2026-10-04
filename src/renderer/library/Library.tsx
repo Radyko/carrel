@@ -52,6 +52,8 @@ interface Props {
   onTrash: (id: string) => void;
   onContextMenu: (id: string) => void;
   onSettings: () => void;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }
 
 const COLUMNS: { key: SortKey; label: string; width: string; className?: string }[] = [
@@ -174,47 +176,62 @@ export function Library(props: Props) {
 
   return (
     <div className="library">
-      <aside className="sidebar">
-        <div className="sidebar-top" />
-        <nav className="sidebar-scroll" aria-label="Library groups">
-          <h3>Library</h3>
-          {GROUPS.map((g) => sideItem({ kind: 'group', id: g.id }, g.label, count({ kind: 'group', id: g.id }), g.id === 'due'))}
-          <div className="side-heading">
-            <h3>Collections</h3>
-            <button
-              className="side-add"
-              title="New collection"
-              aria-label="New collection"
-              onClick={() => props.setNaming({ mode: 'new' })}
-            >
-              +
+      {props.sidebarOpen && (
+        <aside className="sidebar">
+          <div className="sidebar-top" />
+          <nav className="sidebar-scroll" aria-label="Library groups">
+            <h3>Library</h3>
+            {GROUPS.map((g) => sideItem({ kind: 'group', id: g.id }, g.label, count({ kind: 'group', id: g.id }), g.id === 'due'))}
+            <div className="side-heading">
+              <h3>Collections</h3>
+              <button
+                className="side-add"
+                title="New collection"
+                aria-label="New collection"
+                onClick={() => props.setNaming({ mode: 'new' })}
+              >
+                +
+              </button>
+            </div>
+            {props.collections.map((c) =>
+              props.naming?.mode === 'rename' && props.naming.from === c ? (
+                <NameField key={c} initial={c} onDone={props.onNameCollection} onCancel={() => props.setNaming(null)} />
+              ) : (
+                sideItem({ kind: 'collection', value: c }, c, count({ kind: 'collection', value: c }))
+              ),
+            )}
+            {props.naming?.mode === 'new' && (
+              <NameField initial="" onDone={props.onNameCollection} onCancel={() => props.setNaming(null)} />
+            )}
+            {props.collections.length === 0 && props.naming?.mode !== 'new' && (
+              <p className="side-hint">Group papers by course or project. Drag a paper onto a collection to add it.</p>
+            )}
+            {topics.length > 0 && <h3>Topics</h3>}
+            {topics.map((t) => sideItem({ kind: 'topic', value: t }, t, count({ kind: 'topic', value: t })))}
+          </nav>
+          <div className="sidebar-foot">
+            <button className="btn quiet small" onClick={props.onSettings}>
+              Settings
             </button>
           </div>
-          {props.collections.map((c) =>
-            props.naming?.mode === 'rename' && props.naming.from === c ? (
-              <NameField key={c} initial={c} onDone={props.onNameCollection} onCancel={() => props.setNaming(null)} />
-            ) : (
-              sideItem({ kind: 'collection', value: c }, c, count({ kind: 'collection', value: c }))
-            ),
-          )}
-          {props.naming?.mode === 'new' && (
-            <NameField initial="" onDone={props.onNameCollection} onCancel={() => props.setNaming(null)} />
-          )}
-          {props.collections.length === 0 && props.naming?.mode !== 'new' && (
-            <p className="side-hint">Group papers by course or project. Drag a paper onto a collection to add it.</p>
-          )}
-          {topics.length > 0 && <h3>Topics</h3>}
-          {topics.map((t) => sideItem({ kind: 'topic', value: t }, t, count({ kind: 'topic', value: t })))}
-        </nav>
-        <div className="sidebar-foot">
-          <button className="btn quiet small" onClick={props.onSettings}>
-            Settings
-          </button>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       <section className="list-pane">
-        <div className="toolbar">
+        <div className={`toolbar${props.sidebarOpen ? '' : ' inset'}`}>
+          <button
+            className={`btn quiet icon sidebar-toggle${props.sidebarOpen ? ' on' : ''}`}
+            onClick={props.onToggleSidebar}
+            title={props.sidebarOpen ? 'Hide the sidebar' : 'Show the sidebar'}
+            aria-label={props.sidebarOpen ? 'Hide the sidebar' : 'Show the sidebar'}
+            aria-pressed={props.sidebarOpen}
+          >
+            <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden>
+              <rect x="0.75" y="0.75" width="14.5" height="12.5" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M5.5 1v12" stroke="currentColor" strokeWidth="1.3" />
+            </svg>
+          </button>
+          {!props.sidebarOpen && <span className="current-filter">{filterLabel(ui.filter)}</span>}
           <button className="btn" onClick={props.onAddPdf} title="Add a PDF (or drop one on the window)">
             Add PDF…
           </button>
@@ -399,4 +416,9 @@ function NameField({ initial, onDone, onCancel }: { initial: string; onDone: (na
       onBlur={() => finish(true)}
     />
   );
+}
+
+function filterLabel(f: Filter): string {
+  if (f.kind === 'group') return GROUPS.find((g) => g.id === f.id)?.label ?? '';
+  return f.value;
 }

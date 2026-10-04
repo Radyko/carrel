@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type TextareaHTMLAttributes } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import {
   formatChecklist,
   formatTerms,
@@ -8,6 +8,41 @@ import {
   type Parsed,
   type Term,
 } from '../../shared/fieldFormat';
+
+const tidy = (s: string) => s.replace(/\s+/g, ' ').trim();
+
+/**
+ * Keeps exactly what was typed while the saved value is a tidied copy of it
+ * (trimmed, single-spaced). Without this, a value that is saved and read back
+ * on every keystroke would lose the space just typed at the end.
+ */
+export function useDraft(value: string): [string, (v: string) => void] {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => {
+    setDraft((d) => (tidy(d) === tidy(value) ? d : value));
+  }, [value]);
+  return [draft, setDraft];
+}
+
+/** A single-line input for a value that is tidied when saved. */
+export function DraftInput({
+  value,
+  onValue,
+  ...rest
+}: { value: string; onValue: (v: string) => void } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value'>) {
+  const [draft, setDraft] = useDraft(value);
+  return (
+    <input
+      type="text"
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        onValue(e.target.value);
+      }}
+      {...rest}
+    />
+  );
+}
 
 /** A textarea that grows with its content. */
 export function AutoTextarea({
@@ -42,12 +77,7 @@ export function ChecklistField({ value, onChange, id }: { value: string; onChang
       {parsed.items.map((item, i) => (
         <div className={`list-row${item.done ? ' done' : ''}`} key={i}>
           <input type="checkbox" checked={item.done} onChange={(e) => setItem(i, { done: e.target.checked })} aria-label="Done" />
-          <input
-            className="field bare"
-            type="text"
-            value={item.text}
-            onChange={(e) => setItem(i, { text: e.target.value })}
-          />
+          <DraftInput className="field bare" value={item.text} onValue={(text) => setItem(i, { text })} />
           <button
             className="btn quiet icon small"
             title="Remove"
@@ -112,8 +142,8 @@ export function TermsField({ value, onChange, id }: { value: string; onChange: (
     <div className="list-field">
       {parsed.items.map((item, i) => (
         <div className="term-row" key={i}>
-          <input className="field bare term" type="text" value={item.term} onChange={(e) => setItem(i, { term: e.target.value })} aria-label="Term" />
-          <input className="field bare" type="text" value={item.meaning} onChange={(e) => setItem(i, { meaning: e.target.value })} aria-label="Meaning" />
+          <DraftInput className="field bare term" value={item.term} onValue={(term) => setItem(i, { term })} aria-label="Term" />
+          <DraftInput className="field bare" value={item.meaning} onValue={(meaning) => setItem(i, { meaning })} aria-label="Meaning" />
           <button
             className="btn quiet icon small"
             title="Remove"
