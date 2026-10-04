@@ -275,8 +275,8 @@ function Updates({
     return (
       <div className="help">
         <p>
-          {problem === 'npx'
-            ? 'Carrel couldn’t find Node.js, which it uses to update. Install it from nodejs.org, then open Terminal and run:'
+          {problem === 'offline'
+            ? 'Carrel couldn’t reach the download. Check your internet connection and try again, or open Terminal and run:'
             : 'Carrel couldn’t update itself here. Open Terminal and run:'}
         </p>
         {command}

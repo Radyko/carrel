@@ -1,24 +1,22 @@
 // Checking for and installing new versions of Carrel.
 //
-// Carrel is published on npm, and installing it again with npx is how it
-// updates (see scripts/install-app.js). The check asks the npm registry which
-// version is latest and sends nothing else. Updating runs the same
-// npx command a person would type (finding Node the way findNode.ts explains),
-// after Carrel has quit; the new version then opens by itself.
+// Each release on GitHub carries a ready-made Carrel for macOS and Linux, its
+// installer (scripts/install.sh) and latest.json with its version number. The
+// check reads latest.json and sends nothing else. Updating runs the installer
+// after Carrel has quit, the same one people use to install Carrel, so it
+// needs no Node or npm; the new version then opens by itself.
 import { app, net } from 'electron';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { UpdateStart, UpdateStatus } from '../shared/api';
 import { compareVersions } from '../shared/version';
-import { cleanEnv, findNode } from './findNode';
 
-/**
- * The command that installs or updates Carrel, as shown to people. It is npm's
- * shorthand for the GitHub repository; the command then fetches the newest
- * release from npm if it is newer (see bin/carrel.js).
- */
-export const UPDATE_COMMAND = 'npx radyko/carrel';
+// CARREL_RELEASES points at another copy of the releases, for testing.
+const RELEASES = process.env.CARREL_RELEASES || 'https://github.com/Radyko/carrel/releases';
+
+/** The command that installs or updates Carrel, as shown to people. */
+export const UPDATE_COMMAND = 'curl -fsSL radyko.github.io/carrel/install | sh';
 
 /** 'app' when this is the installed app, 'source' when it runs from a checkout or package folder. */
 export function installKind(): 'app' | 'source' {
@@ -28,21 +26,15 @@ export function installKind(): 'app' | 'source' {
     : 'source';
 }
 
-export async function checkForUpdate(packageName: string): Promise<UpdateStatus> {
+export async function checkForUpdate(): Promise<UpdateStatus> {
   const version = app.getVersion();
   try {
-    // Read the same package list npx installs from. npm's CDN caches it for a
-    // few minutes after a release, while the /latest address is never cached;
-    // reading /latest offered updates npx couldn't install yet.
-    const url = `https://registry.npmjs.org/${packageName.replace('/', '%2f')}`;
-    const res = await net.fetch(url, {
+    const res = await net.fetch(`${RELEASES}/latest/download/latest.json`, {
       cache: 'no-store',
-      headers: { Accept: 'application/vnd.npm.install-v1+json' },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return { state: 'offline' };
-    const data = (await res.json()) as { 'dist-tags'?: { latest?: unknown } };
-    const latest = data['dist-tags']?.latest;
+    const latest = ((await res.json()) as { version?: unknown }).version;
     if (typeof latest !== 'string') return { state: 'offline' };
     return compareVersions(latest, version) > 0 ? { state: 'available', version, latest } : { state: 'current', version };
   } catch {
@@ -65,39 +57,36 @@ function logPath(): string {
  * opens the new version; if it fails, it opens this version again, and
  * updateOutcome() says so at the next start.
  */
-export async function installUpdate(packageName: string): Promise<UpdateStart> {
+export async function installUpdate(): Promise<UpdateStart> {
   if (installKind() !== 'app') return { ok: false, reason: 'source' };
   if (process.platform !== 'darwin' && process.platform !== 'linux') return { ok: false, reason: 'platform' };
-  const node = await findNode();
-  if (!node) return { ok: false, reason: 'npx' };
 
-  // Install the exact version the check found. Right after a release, npm can
-  // still hand out the previous one as "latest" for a few minutes, which would
-  // reinstall the same version; an exact version waits for npm instead.
-  const status = await checkForUpdate(packageName);
-  const target = status.state === 'available' ? status.latest : 'latest';
+  // Install the exact version the check found.
+  const status = await checkForUpdate();
+  if (status.state !== 'available') return { ok: false, reason: status.state === 'offline' ? 'offline' : 'current' };
+  const target = status.latest;
 
   const log = logPath();
   fs.mkdirSync(path.dirname(log), { recursive: true });
-  fs.writeFileSync(log, `Updating Carrel ${app.getVersion()} to ${target}, ${new Date().toISOString()}, with ${node.npx}\n`);
+  fs.writeFileSync(log, `Updating Carrel ${app.getVersion()} to ${target}, ${new Date().toISOString()}\n`);
   fs.writeFileSync(pendingPath(), JSON.stringify({ from: app.getVersion(), to: target, at: Date.now() }));
-  const reopen =
-    process.platform === 'darwin'
-      ? `open ${quote(path.resolve(process.execPath, '..', '..', '..'))}`
-      : `${quote(process.execPath)} >/dev/null 2>&1 &`;
-  // Wait for this copy to quit, then update; npx opens the new version. If
-  // npm doesn't have the new version yet, try again a little later.
-  const npx = `${quote(node.npx)} --yes --prefer-online ${packageName}@${target} >>${quote(log)} 2>&1`;
+  // The app's path goes in through the environment, not the script's text, so
+  // the installer's check for a running Carrel doesn't find this script.
+  const reopen = process.platform === 'darwin' ? 'open "$CARREL_REOPEN"' : '"$CARREL_REOPEN" >/dev/null 2>&1 &';
+  // Wait for this copy to quit, then run the release's installer, which opens
+  // the new version. Try again a little later if the download fails.
   const script = [
     'sleep 2',
-    `for wait in 20 40 0; do ${npx} && exit 0; [ $wait = 0 ] && break; echo "Trying again in $wait seconds" >>${quote(log)}; sleep $wait; done`,
+    'f=$(mktemp)',
+    `for wait in 20 40 0; do curl -fsSL --retry 2 -o "$f" ${quote(`${RELEASES}/download/v${target}/install.sh`)} && CARREL_VERSION=${quote(target)} CARREL_QUIET=1 sh "$f" >>${quote(log)} 2>&1 && exit 0; [ $wait = 0 ] && break; echo "Trying again in $wait seconds" >>${quote(log)}; sleep $wait; done`,
     reopen,
   ].join('\n');
-  const child = spawn('/bin/sh', ['-c', script], {
-    detached: true,
-    stdio: 'ignore',
-    env: { ...cleanEnv(), PATH: node.path },
-  });
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    CARREL_REOPEN: process.platform === 'darwin' ? path.resolve(process.execPath, '..', '..', '..') : process.execPath,
+  };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const child = spawn('/bin/sh', ['-c', script], { detached: true, stdio: 'ignore', env });
   child.unref();
   setTimeout(() => app.quit(), 200);
   return { ok: true };

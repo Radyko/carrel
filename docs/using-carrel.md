@@ -98,14 +98,14 @@ itself, and opens again in about a minute. Your papers and notes aren't
 touched. Each update goes straight to the newest version. If one ever
 doesn't finish, Settings says so and shows where the details are.
 
-From Terminal, this always installs the latest version:
+Running the install line in Terminal also installs the latest version:
 
 ```sh
-npx radyko/carrel
+curl -fsSL radyko.github.io/carrel/install | sh
 ```
 
-To check for updates, Carrel asks npm (where it is published) for the latest
-version number. Nothing else is sent.
+To check for updates, Carrel downloads a small file from Carrel's GitHub
+releases that holds the latest version number. Nothing about you is sent.
 
 ## Keyboard shortcuts
 

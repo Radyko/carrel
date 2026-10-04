@@ -196,6 +196,40 @@ function signApp(app, log) {
   return false;
 }
 
+/** Builds Carrel.app at `staging` from an Electron distribution folder. */
+function assembleMac(staging, dist, work, log) {
+  log('Assembling Carrel.app');
+  run('ditto', [path.join(dist, 'Electron.app'), staging]);
+  const resources = path.join(staging, 'Contents', 'Resources');
+  fs.rmSync(path.join(resources, 'default_app.asar'), { force: true });
+  copyApp(path.join(resources, 'app'));
+
+  // Name the app Carrel. The executable and helper apps keep Electron's names,
+  // which Electron relies on to find its helpers.
+  const plist = path.join(staging, 'Contents', 'Info.plist');
+  for (const [key, value] of [
+    ['CFBundleName', NAME],
+    ['CFBundleDisplayName', NAME],
+    ['CFBundleShortVersionString', pkg.version],
+    ['CFBundleVersion', pkg.version],
+  ]) {
+    run('plutil', ['-replace', key, '-string', value, plist]);
+  }
+
+  log('Making the icon');
+  const iconset = path.join(work, 'carrel.iconset');
+  fs.mkdirSync(iconset, { recursive: true });
+  const png = path.join(root, 'assets', 'icon.png');
+  for (const size of [16, 32, 128, 256, 512]) {
+    run('sips', ['-z', String(size), String(size), png, '--out', path.join(iconset, `icon_${size}x${size}.png`)]);
+    run('sips', ['-z', String(size * 2), String(size * 2), png, '--out', path.join(iconset, `icon_${size}x${size}@2x.png`)]);
+  }
+  run('iconutil', ['-c', 'icns', iconset, '-o', path.join(resources, 'electron.icns')]);
+
+  log('Signing it');
+  signApp(staging, log);
+}
+
 function installMac(log) {
   const dist = electronDist();
   const existing = installedApp();
@@ -210,37 +244,7 @@ function installMac(log) {
   const staging = path.join(work, `${NAME}.app`);
 
   try {
-    log('Assembling Carrel.app');
-    run('ditto', [path.join(dist, 'Electron.app'), staging]);
-    const resources = path.join(staging, 'Contents', 'Resources');
-    fs.rmSync(path.join(resources, 'default_app.asar'), { force: true });
-    copyApp(path.join(resources, 'app'));
-
-    // Name the app Carrel. The executable and helper apps keep Electron's names,
-    // which Electron relies on to find its helpers.
-    const plist = path.join(staging, 'Contents', 'Info.plist');
-    for (const [key, value] of [
-      ['CFBundleName', NAME],
-      ['CFBundleDisplayName', NAME],
-      ['CFBundleShortVersionString', pkg.version],
-      ['CFBundleVersion', pkg.version],
-    ]) {
-      run('plutil', ['-replace', key, '-string', value, plist]);
-    }
-
-    log('Making the icon');
-    const iconset = path.join(work, 'carrel.iconset');
-    fs.mkdirSync(iconset);
-    const png = path.join(root, 'assets', 'icon.png');
-    for (const size of [16, 32, 128, 256, 512]) {
-      run('sips', ['-z', String(size), String(size), png, '--out', path.join(iconset, `icon_${size}x${size}.png`)]);
-      run('sips', ['-z', String(size * 2), String(size * 2), png, '--out', path.join(iconset, `icon_${size}x${size}@2x.png`)]);
-    }
-    run('iconutil', ['-c', 'icns', iconset, '-o', path.join(resources, 'electron.icns')]);
-
-    log('Signing it for this Mac');
-    signApp(staging, log);
-
+    assembleMac(staging, dist, work, log);
     stopRunning(target, log);
 
     log(`Installing to ${target}`);
@@ -257,6 +261,14 @@ function installMac(log) {
   return target;
 }
 
+/** Builds Carrel for Linux in `staging` from an Electron distribution folder. */
+function assembleLinux(staging, dist) {
+  fs.rmSync(staging, { recursive: true, force: true });
+  fs.cpSync(dist, staging, { recursive: true, verbatimSymlinks: true });
+  fs.rmSync(path.join(staging, 'resources', 'default_app.asar'), { force: true });
+  copyApp(path.join(staging, 'resources', 'app'));
+}
+
 function installLinux(log) {
   const dist = electronDist();
   const share = path.join(os.homedir(), '.local', 'share');
@@ -265,10 +277,7 @@ function installLinux(log) {
 
   stopRunning(target, log);
   log('Assembling Carrel');
-  fs.rmSync(staging, { recursive: true, force: true });
-  fs.cpSync(dist, staging, { recursive: true, verbatimSymlinks: true });
-  fs.rmSync(path.join(staging, 'resources', 'default_app.asar'), { force: true });
-  copyApp(path.join(staging, 'resources', 'app'));
+  assembleLinux(staging, dist);
   fs.rmSync(target, { recursive: true, force: true });
   fs.renameSync(staging, target);
 
@@ -304,7 +313,7 @@ function install({ verbose = false } = {}) {
   throw new Error('Installing Carrel as an app works on macOS and Linux for now.');
 }
 
-module.exports = { install, installedApp, openInstalled, canInstall, version: pkg.version };
+module.exports = { install, installedApp, openInstalled, canInstall, assembleMac, assembleLinux, electronDist, run, NAME, version: pkg.version };
 
 if (require.main === module) {
   try {
