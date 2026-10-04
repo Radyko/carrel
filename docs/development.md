@@ -19,20 +19,28 @@ with a `src` folder, as after `npm link`) always runs itself.
 
 ## How people update
 
-The installed app checks the npm registry for a newer version at start and
-every 15 minutes while open, and when its window regains focus, the sidebar
-opens, the library comes back or Settings opens (all but Settings skip a check
-made in the last 30 seconds)
-(`src/main/updates.ts`). **Update** quits Carrel and runs
-`npx @radyko/carrel@<version>` with the exact version the check found (right
-after a release, npm can still resolve `@latest` to the previous version), and
-tries twice more if npm doesn't have it yet. A note in `update-pending.json`
-lets the next start tell whether the update took; if not, Settings says so. Apps opened from the Dock or Finder don't get
-Terminal's PATH, so `src/main/findNode.ts` looks for Node itself: on the
-current PATH, then in the folders that nvm, fnm, Volta, asdf, mise, nodenv, n,
-Homebrew and the nodejs.org installer use, and last in the login shell's PATH
-(with stdin closed, so a startup prompt can't hang it). The new version opens when that finishes; if it fails, the
-old one opens again, and the output is in `update.log` in Carrel's logs folder.
+The installed app checks npm for a newer version (`src/main/updates.ts`):
+
+- **When**: at start, every 15 minutes while open, and when its window
+  regains focus, the sidebar opens, the library comes back or Settings opens.
+  All but Settings skip a check made in the last 30 seconds.
+- **Where**: the package list npx installs from, not the `/latest` address.
+  `/latest` is never cached, but the package list is cached for up to 5
+  minutes after a release, so checking `/latest` offered updates npx couldn't
+  install yet.
+
+**Update** quits Carrel and runs `npx @radyko/carrel@<version>` with the exact
+version the check found, trying twice more if npm doesn't have it yet. The new
+version opens when that finishes. If it fails, the old one opens again, the
+output is in `update.log` in Carrel's logs folder, and a note in
+`update-pending.json` lets the next start say in Settings that the update
+didn't finish.
+
+Apps opened from the Dock or Finder don't get Terminal's PATH, so
+`src/main/findNode.ts` looks for Node itself: on the current PATH, then in the
+folders that nvm, fnm, Volta, asdf, mise, nodenv, n, Homebrew and the
+nodejs.org installer use, and last in the login shell's PATH (with stdin
+closed, so a startup prompt can't hang it).
 
 Two guards keep an update from running new code against an old process:
 the installer closes any running copy before replacing files (asking it to

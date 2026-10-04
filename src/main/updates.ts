@@ -1,8 +1,8 @@
 // Checking for and installing new versions of Carrel.
 //
 // Carrel is published on npm, and installing it again with npx is how it
-// updates (see scripts/install-app.js). The check asks the npm registry for
-// the latest version number and sends nothing else. Updating runs the same
+// updates (see scripts/install-app.js). The check asks the npm registry which
+// version is latest and sends nothing else. Updating runs the same
 // npx command a person would type (finding Node the way findNode.ts explains),
 // after Carrel has quit; the new version then opens by itself.
 import { app, net } from 'electron';
@@ -31,14 +31,20 @@ export function installKind(): 'app' | 'source' {
 export async function checkForUpdate(packageName: string): Promise<UpdateStatus> {
   const version = app.getVersion();
   try {
-    const url = `https://registry.npmjs.org/${packageName.replace('/', '%2f')}/latest`;
-    const res = await net.fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10_000) });
+    // Read the same package list npx installs from. npm's CDN caches it for a
+    // few minutes after a release, while the /latest address is never cached;
+    // reading /latest offered updates npx couldn't install yet.
+    const url = `https://registry.npmjs.org/${packageName.replace('/', '%2f')}`;
+    const res = await net.fetch(url, {
+      cache: 'no-store',
+      headers: { Accept: 'application/vnd.npm.install-v1+json' },
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return { state: 'offline' };
-    const latest = (await res.json()) as { version?: unknown };
-    if (typeof latest.version !== 'string') return { state: 'offline' };
-    return compareVersions(latest.version, version) > 0
-      ? { state: 'available', version, latest: latest.version }
-      : { state: 'current', version };
+    const data = (await res.json()) as { 'dist-tags'?: { latest?: unknown } };
+    const latest = data['dist-tags']?.latest;
+    if (typeof latest !== 'string') return { state: 'offline' };
+    return compareVersions(latest, version) > 0 ? { state: 'available', version, latest } : { state: 'current', version };
   } catch {
     return { state: 'offline' };
   }
