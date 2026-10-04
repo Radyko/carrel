@@ -355,7 +355,16 @@ export function readFront(file: NotesFile): Record<string, unknown> {
   return js && typeof js === 'object' && !Array.isArray(js) ? (js as Record<string, unknown>) : {};
 }
 
-const FLOW_KEYS = new Set(['authors', 'topics']);
+const FLOW_KEYS = new Set(['authors', 'topics', 'collections']);
+
+/** Removes a front matter field. */
+export function deleteFront(file: NotesFile, key: string): void {
+  if (file.frontError) throw new Error(`The front matter of this notes file is invalid: ${file.frontError}`);
+  if (file.frontDoc.has(key)) {
+    file.frontDoc.delete(key);
+    file.frontDirty = true;
+  }
+}
 
 /** Sets front matter fields. Unknown fields and comments are left untouched. */
 export function setFront(file: NotesFile, values: Record<string, unknown>): void {

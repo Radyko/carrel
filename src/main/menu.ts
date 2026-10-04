@@ -71,6 +71,7 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
         item('Zoom In', 'zoom-in', 'CmdOrCtrl+='),
         item('Zoom Out', 'zoom-out', 'CmdOrCtrl+-'),
         item('Fit to Width', 'fit-width', 'CmdOrCtrl+0'),
+        item('Highlight Selection', 'highlight', 'CmdOrCtrl+Shift+H'),
         { type: 'separator' },
         { role: 'togglefullscreen' },
         { role: 'toggleDevTools' },

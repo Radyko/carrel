@@ -10,7 +10,8 @@ export interface PaperMeta {
   venue: string;
   link: string;
   topics: string[];
-  course: string;
+  /** Collections the paper belongs to: courses, projects, anything. */
+  collections: string[];
   status: Status;
   /** Furthest pass reached: 0 (not started) to the number of the last pass. */
   furthestPass: number;
@@ -41,7 +42,7 @@ export const META_KEYS: Record<keyof PaperMeta, string> = {
   venue: 'venue',
   link: 'link',
   topics: 'topics',
-  course: 'course',
+  collections: 'collections',
   status: 'status',
   furthestPass: 'furthest_pass',
   decisions: 'decisions',
@@ -66,7 +67,7 @@ export function emptyMeta(): PaperMeta {
     venue: '',
     link: '',
     topics: [],
-    course: '',
+    collections: [],
     status: 'to-read',
     furthestPass: 0,
     decisions: {},
@@ -92,6 +93,15 @@ function textList(v: unknown, split: RegExp): string[] {
   if (v === null || v === undefined) return [];
   const items = Array.isArray(v) ? v.map(text) : text(v).split(split);
   return items.map((s) => s.trim()).filter(Boolean);
+}
+
+/** Names without blanks or case-insensitive duplicates, in their first order. */
+export function distinctNames(names: string[]): string[] {
+  const out: string[] = [];
+  for (const n of names.map((s) => s.trim()).filter(Boolean)) {
+    if (!out.some((o) => o.localeCompare(n, undefined, { sensitivity: 'accent' }) === 0)) out.push(n);
+  }
+  return out;
 }
 
 function intOrNull(v: unknown): number | null {
@@ -126,7 +136,8 @@ export function metaFromFrontMatter(data: Record<string, unknown>): PaperMeta {
   m.venue = text(get('venue'));
   m.link = text(get('link'));
   m.topics = textList(get('topics'), /\s*,\s*/);
-  m.course = text(get('course'));
+  // Before collections there was a single `course` field; it reads as a collection.
+  m.collections = distinctNames([...textList(get('collections'), /\s*,\s*/), text(data.course)]);
   const status = text(get('status'));
   m.status = (STATUSES as readonly string[]).includes(status) ? (status as Status) : 'to-read';
   m.furthestPass = Math.max(0, intOrNull(get('furthestPass')) ?? 0);
@@ -189,6 +200,8 @@ export interface PaperDoc {
   /** Answers by stage id, then field id. Markdown text. */
   answers: Record<string, Record<string, string>>;
   notes: string;
+  /** The Highlights section, in the format of shared/highlights.ts. */
+  highlights: string;
   reviews: ReviewEntry[];
   other: OtherNote[];
   /** Set when the file could not be understood; the paper is then read-only. */
@@ -212,6 +225,7 @@ export interface PaperPatch {
   meta?: Partial<PaperMeta>;
   answers?: Record<string, Record<string, string>>;
   notes?: string;
+  highlights?: string;
   appendReview?: ReviewEntry;
   /** Update last_worked. */
   touch?: boolean;

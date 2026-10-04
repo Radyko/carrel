@@ -20,9 +20,10 @@
 version: 1
 name: Three passes
 
-# Free-form notes shown below the questions on every tab, and the section that
-# review results are appended to.
+# Free-form notes shown below the questions on every tab, the section that
+# holds your PDF highlights, and the section that review results are appended to.
 notes_heading: Notes
+highlights_heading: Highlights
 reviews_heading: Reviews
 
 purpose:

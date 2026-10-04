@@ -62,7 +62,7 @@ describe('library', () => {
       venue: 'Notes',
       link: 'https://example.org/paper?x=1&y=2',
       topics: ['engines', 'math: analysis'],
-      course: 'CS 101',
+      collections: ['CS 101', 'Thesis'],
       status: 'in-progress' as const,
       furthestPass: 2,
       decisions: { pass1: 'continue', pass2: 'later' },
@@ -221,5 +221,62 @@ describe('library', () => {
       { heading: '2026-11-09 · Fuzzy', text: 'Something about warps.' },
     ]);
     expect(await readNotes(id)).toMatch(/# Notes\n\n# Reviews\n\n## 2026-10-10 · Remembered\n\nGPUs hide latency.\n\n## 2026-11-09/);
+  });
+});
+
+describe('collections', () => {
+  it('reads the old course field as a collection and replaces it on save', async () => {
+    const { id } = await lib.create({ meta: { title: 'Legacy' } }, guide);
+    const file = path.join(root, 'papers', id, NOTES_FILE);
+    await fs.writeFile(file, (await readNotes(id)).replace('collections: []', 'course: CS 6290'));
+    expect((await lib.read(id, guide)).meta.collections).toEqual(['CS 6290']);
+    await lib.update(id, { meta: { collections: ['CS 6290', 'Thesis'] } }, guide);
+    const text = await readNotes(id);
+    expect(text).toContain('collections: [CS 6290, Thesis]');
+    expect(text).not.toContain('course:');
+  });
+
+  it('keeps empty collections, in order, and adds ones found in papers', async () => {
+    await lib.create({ meta: { title: 'A', collections: ['Zeta project'] } }, guide);
+    await lib.createCollection('Thesis', guide);
+    await lib.createCollection('CS 8803', guide);
+    await lib.createCollection('thesis', guide); // same name, different case
+    expect(await lib.collections(await lib.scan(guide))).toEqual(['Zeta project', 'Thesis', 'CS 8803']);
+    expect(await fs.readFile(path.join(root, 'collections.yaml'), 'utf8')).toContain('- Thesis');
+  });
+
+  it('renames and deletes collections in every paper, keeping the papers', async () => {
+    const a = await lib.create({ meta: { title: 'A', collections: ['Thesis', 'GPU'] } }, guide);
+    const b = await lib.create({ meta: { title: 'B', collections: ['thesis'] } }, guide);
+    await lib.renameCollection('Thesis', 'Dissertation', guide);
+    expect((await lib.read(a.id, guide)).meta.collections).toEqual(['Dissertation', 'GPU']);
+    expect((await lib.read(b.id, guide)).meta.collections).toEqual(['Dissertation']);
+    await lib.deleteCollection('Dissertation', guide);
+    expect((await lib.read(a.id, guide)).meta.collections).toEqual(['GPU']);
+    expect((await lib.read(b.id, guide)).meta.collections).toEqual([]);
+    expect(await lib.collections(await lib.scan(guide))).toEqual(['GPU']);
+    expect((await lib.scan(guide)).length).toBe(2);
+  });
+
+  it('refuses to overwrite a collections file it cannot read', async () => {
+    await fs.writeFile(path.join(root, 'collections.yaml'), 'collections: [broken\n');
+    await expect(lib.createCollection('New', guide)).rejects.toThrow(/could not be read/);
+    expect(await fs.readFile(path.join(root, 'collections.yaml'), 'utf8')).toBe('collections: [broken\n');
+  });
+});
+
+describe('highlights in notes.md', () => {
+  it('are saved under their own heading, found by search, and not shown as other notes', async () => {
+    const { id } = await lib.create({ meta: { title: 'Highlights' } }, guide);
+    const line = '- p. 2: “blocks of the KV cache” <!-- carrel id=a1 color=yellow rects=0.1,0.2,0.3,0.02 -->';
+    await lib.update(id, { highlights: line, notes: 'A note.' }, guide);
+    const text = await readNotes(id);
+    expect(text).toContain(`# Highlights\n\n${line}\n\n# Notes\n\nA note.`);
+    const doc = await lib.read(id, guide);
+    expect(doc.highlights).toBe(line);
+    expect(doc.other).toEqual([]);
+    const [summary] = await lib.scan(guide);
+    expect(summary.searchText).toContain('blocks of the KV cache');
+    expect(summary.searchText).not.toContain('carrel id=');
   });
 });

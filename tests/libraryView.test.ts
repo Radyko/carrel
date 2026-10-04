@@ -8,12 +8,12 @@ function paper(id: string, meta: Partial<PaperMeta>, searchText = ''): PaperSumm
 
 const papers = [
   paper('a', { title: 'Attention', authors: ['Vaswani'], year: 2017, rating: 5, topics: ['ML'], status: 'read' }),
-  paper('b', { title: 'Roofline', authors: ['Williams'], year: 2009, topics: ['GPU', 'perf'], course: 'CS 6290' }, 'Arithmetic intensity bounds'),
+  paper('b', { title: 'Roofline', authors: ['Williams'], year: 2009, topics: ['GPU', 'perf'], collections: ['CS 6290', 'Thesis'] }, 'Arithmetic intensity bounds'),
   paper('c', { title: 'Dremel', authors: ['Melnik'], nextReview: '2026-10-01', reviewInterval: 7, status: 'read' }),
 ];
 
 describe('library view', () => {
-  it('filters by group, topic and course', () => {
+  it('filters by group, topic and collection', () => {
     const today = '2026-10-03';
     const ids = (f: Parameters<typeof matchesFilter>[1]) => papers.filter((p) => matchesFilter(p, f, today)).map((p) => p.id);
     expect(ids({ kind: 'group', id: 'all' })).toEqual(['a', 'b', 'c']);
@@ -21,7 +21,8 @@ describe('library view', () => {
     expect(ids({ kind: 'group', id: 'to-read' })).toEqual(['b']);
     expect(ids({ kind: 'group', id: 'due' })).toEqual(['c']);
     expect(ids({ kind: 'topic', value: 'gpu' })).toEqual(['b']);
-    expect(ids({ kind: 'course', value: 'CS 6290' })).toEqual(['b']);
+    expect(ids({ kind: 'collection', value: 'CS 6290' })).toEqual(['b']);
+    expect(ids({ kind: 'collection', value: 'thesis' })).toEqual(['b']);
   });
 
   it('searches titles, authors and notes', () => {

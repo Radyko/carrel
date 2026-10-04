@@ -1,8 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, screen, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, screen, shell } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { AppState, ChosenPdf, ContextAction } from '../shared/api';
+import type { AppState, ChosenPdf, ContextAction, PaperMenuOptions } from '../shared/api';
 import type { NewPaperInput, PaperPatch } from '../shared/paper';
 import { buildMenu } from './menu';
 import { loadSettings, saveSettings, type Settings } from './settings';
@@ -40,6 +40,7 @@ async function openLibrary(libraryPath: string): Promise<void> {
 function state(): AppState {
   return {
     libraryPath: library.root,
+    appearance: settings.appearance,
     guide: loadedGuide.guide,
     guidePath: loadedGuide.path,
     guideProblem: loadedGuide.problem,
@@ -47,6 +48,34 @@ function state(): AppState {
     platform: process.platform,
     version: app.getVersion(),
   };
+}
+
+type MenuTemplate = Electron.MenuItemConstructorOptions[];
+
+/** Shows a native menu and resolves with the item chosen, or null. */
+function popupMenu<T>(sender: Electron.WebContents, build: (pick: (choice: T) => () => void) => MenuTemplate): Promise<T | null> {
+  return new Promise((resolve) => {
+    let chosen: T | null = null;
+    const menu = Menu.buildFromTemplate(build((choice) => () => (chosen = choice)));
+    menu.popup({
+      window: BrowserWindow.fromWebContents(sender) ?? undefined,
+      callback: () => setImmediate(() => resolve(chosen)),
+    });
+  });
+}
+
+/** Ticked collection items for a paper, plus one to make a new collection. */
+function collectionItems(options: PaperMenuOptions, pick: (choice: ContextAction) => () => void): MenuTemplate {
+  return [
+    ...options.collections.map((name) => ({
+      label: name,
+      type: 'checkbox' as const,
+      checked: options.member.includes(name),
+      click: pick(`toggle:${name}`),
+    })),
+    ...(options.collections.length ? [{ type: 'separator' as const }] : []),
+    { label: 'New Collection…', click: pick('new-collection') },
+  ];
 }
 
 function isPdfPath(p: unknown): p is string {
@@ -90,26 +119,43 @@ function registerIpc(): void {
     await shell.trashItem(folder);
     return true;
   });
-  ipcMain.handle('paper:context-menu', (e, id: string, options: { due: boolean }) => {
-    return new Promise<ContextAction | null>((resolve) => {
-      let chosen: ContextAction | null = null;
-      const pick = (a: ContextAction) => () => {
-        chosen = a;
-      };
-      const menu = Menu.buildFromTemplate([
-        { label: 'Open', click: pick('open') },
-        ...(options.due ? [{ label: 'Review Now', click: pick('review') }] : []),
-        { label: 'Edit Details…', click: pick('edit') },
-        { label: process.platform === 'darwin' ? 'Reveal in Finder' : 'Show in Folder', click: pick('reveal') },
-        { type: 'separator' },
-        { label: 'Move to Trash…', click: pick('trash') },
-      ]);
-      menu.popup({
-        window: BrowserWindow.fromWebContents(e.sender) ?? undefined,
-        callback: () => setImmediate(() => resolve(chosen)),
-      });
-      void id;
+  ipcMain.handle('paper:context-menu', (e, _id: string, options: PaperMenuOptions) =>
+    popupMenu<ContextAction>(e.sender, (pick) => [
+      { label: 'Open', click: pick('open') },
+      ...(options.due ? [{ label: 'Review Now', click: pick('review') }] : []),
+      { label: 'Edit Details…', click: pick('edit') },
+      { label: 'Collections', submenu: collectionItems(options, pick) },
+      { label: process.platform === 'darwin' ? 'Reveal in Finder' : 'Show in Folder', click: pick('reveal') },
+      { type: 'separator' },
+      { label: 'Move to Trash…', click: pick('trash') },
+    ]),
+  );
+  ipcMain.handle('paper:collections-menu', (e, options: PaperMenuOptions) =>
+    popupMenu<ContextAction>(e.sender, (pick) => collectionItems(options, pick)),
+  );
+  ipcMain.handle('collection:context-menu', (e) =>
+    popupMenu<'rename' | 'delete'>(e.sender, (pick) => [
+      { label: 'Rename…', click: pick('rename') },
+      { label: 'Delete Collection…', click: pick('delete') },
+    ]),
+  );
+  ipcMain.handle('collections:list', async () => library.collections(await library.scan(loadedGuide.guide)));
+  ipcMain.handle('collections:create', (_e, name: string) => library.createCollection(name, loadedGuide.guide));
+  ipcMain.handle('collections:rename', (_e, from: string, to: string) =>
+    library.renameCollection(from, to, loadedGuide.guide),
+  );
+  ipcMain.handle('collections:delete', async (_e, name: string) => {
+    const { response } = await dialog.showMessageBox(mainWindow!, {
+      type: 'question',
+      buttons: ['Delete Collection', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      message: `Delete the collection “${name}”?`,
+      detail: 'The papers in it stay in your library; only the grouping is removed.',
     });
+    if (response !== 0) return false;
+    await library.deleteCollection(name, loadedGuide.guide);
+    return true;
   });
   ipcMain.handle('dialog:choose-pdf', async (): Promise<ChosenPdf | null> => {
     const result = await dialog.showOpenDialog(mainWindow!, {
@@ -143,6 +189,13 @@ function registerIpc(): void {
   });
   ipcMain.handle('guide:reload', async () => {
     loadedGuide = await loadGuide(library.root, defaultGuidePath, { install: false });
+    return state();
+  });
+  ipcMain.handle('settings:appearance', async (_e, appearance: Settings['appearance']) => {
+    settings.appearance = appearance === 'light' || appearance === 'dark' ? appearance : 'system';
+    // The interface follows prefers-color-scheme, which follows this.
+    nativeTheme.themeSource = settings.appearance;
+    await saveSettings(settings);
     return state();
   });
   ipcMain.handle('shell:open-link', async (_e, url: string) => {
@@ -195,6 +248,9 @@ function createWindow(): void {
   });
   mainWindow = win;
   if (settings.windowBounds?.maximized) win.maximize();
+  // In full screen the window buttons are hidden, so the toolbar needs no room for them.
+  win.on('enter-full-screen', () => win.webContents.send('window:full-screen', true));
+  win.on('leave-full-screen', () => win.webContents.send('window:full-screen', false));
   win.once('ready-to-show', () => win.show());
 
   // Links never navigate the app window; http(s) links open in the browser.
@@ -246,6 +302,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.whenReady().then(async () => {
     settings = await loadSettings();
+    nativeTheme.themeSource = settings.appearance;
     // CARREL_LIBRARY opens another library for this run only (useful for trying things out).
     const libraryPath = process.env.CARREL_LIBRARY ? path.resolve(process.env.CARREL_LIBRARY) : settings.libraryPath;
     try {

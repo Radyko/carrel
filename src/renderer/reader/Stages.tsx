@@ -1,4 +1,5 @@
 import type { Guide, GuideQuestion, PassStage, PurposeStage } from '../../shared/guide';
+import type { Highlight } from '../../shared/highlights';
 import type { OtherNote, PaperMeta, ReviewEntry } from '../../shared/paper';
 import { suggestedPass } from '../../shared/progress';
 import { AutoTextarea, ChecklistField, Rating, TermsField } from './fields';
@@ -251,6 +252,9 @@ export function SharedNotes({
   reviews,
   onNotes,
   onRating,
+  highlights,
+  onJumpToHighlight,
+  onDeleteHighlight,
 }: {
   guide: Guide;
   notes: string;
@@ -259,9 +263,30 @@ export function SharedNotes({
   reviews: ReviewEntry[];
   onNotes: (v: string) => void;
   onRating: (v: number | null) => void;
+  highlights: Highlight[];
+  onJumpToHighlight: (h: Highlight) => void;
+  onDeleteHighlight: (id: string) => void;
 }) {
   return (
     <section className="shared">
+      {highlights.length > 0 && (
+        <details className="other-notes highlights-list" open>
+          <summary>
+            {guide.highlightsHeading} ({highlights.length})
+          </summary>
+          {highlights.map((h) => (
+            <div key={h.id} className={`hl-item hl-edge-${h.color}`}>
+              <button className="hl-page link" onClick={() => onJumpToHighlight(h)} title="Show in the PDF">
+                p. {h.page}
+              </button>
+              <p className="selectable">{h.text}</p>
+              <button className="btn quiet icon small" title="Remove highlight" onClick={() => onDeleteHighlight(h.id)}>
+                ×
+              </button>
+            </div>
+          ))}
+        </details>
+      )}
       <div className="question">
         <div className="q-head">
           <label className="q-label" htmlFor="free-notes">

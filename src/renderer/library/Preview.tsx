@@ -18,7 +18,9 @@ interface Props {
   today: string;
   isMac: boolean;
   topics: string[];
-  courses: string[];
+  collections: string[];
+  onCollection: (name: string) => void;
+  onCollectionsMenu: (id: string) => void;
   onOpen: (id: string) => void;
   onReview: (id: string) => void;
   onEdit: (id: string) => void;
@@ -95,12 +97,21 @@ export function Preview({ paper, guide, today, isMac, ...on }: Props) {
             </dd>
           </>
         )}
-        {m.course && (
-          <>
-            <dt>Course</dt>
-            <dd>{m.course}</dd>
-          </>
-        )}
+        <dt>Collections</dt>
+        <dd className="chips">
+          {m.collections.map((c) => (
+            <button key={c} className="chip" onClick={() => on.onCollection(c)}>
+              {c}
+            </button>
+          ))}
+          <button
+            className="chip add"
+            onClick={() => on.onCollectionsMenu(paper.id)}
+            title="Add to or remove from collections"
+          >
+            {m.collections.length ? 'Edit…' : 'Add to collection…'}
+          </button>
+        </dd>
         {m.link && (
           <>
             <dt>Link</dt>

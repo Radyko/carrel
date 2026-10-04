@@ -19,10 +19,13 @@ checkout (one with a `src` folder, as after `npm link`) always runs itself.
 `carrel` launcher), puts the built app inside, gives it the Carrel name and
 icon, and on macOS signs it ad hoc for this computer.
 
-`npx github:Radyko/carrel` works without publishing to npm because the
+The package is published to npm as `@radyko/carrel` (npm refused the plain
+name `carrel` as too similar to `parcel`), so people run `npx @radyko/carrel`.
+To release a new version: `npm version minor` (or `patch`), then `npm publish`.
+
+`npx github:Radyko/carrel` also works, without publishing, because the
 `prepare` script builds the package when npm fetches it from GitHub. Add
-`#branch-name` to try a branch: `npx github:Radyko/carrel#some-branch`. Once
-the package is published to npm, the same thing works as `npx carrel`.
+`#branch-name` to try a branch: `npx github:Radyko/carrel#some-branch`.
 
 The code is Electron with TypeScript, React and Vite, and PDF.js for PDFs.
 
@@ -46,6 +49,6 @@ example to try things out without touching your own notes.
 
 Planned, but deliberately left out for now: downloading papers from arXiv or a
 link, AI features (such as an assistant that maintains concept pages and a
-knowledge graph across your notes), PDF highlighting and annotation, sync
+knowledge graph across your notes), PDF annotations beyond highlights, sync
 between computers, accounts, notifications, an editor screen for the guide, and
 statistics.

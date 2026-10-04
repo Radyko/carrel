@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppState, MenuAction } from '../shared/api';
 import { localDate } from '../shared/dates';
-import { distinct, sortPapers } from '../shared/libraryView';
+import { distinct, same, sortPapers } from '../shared/libraryView';
 import type { PaperMeta, PaperSummary } from '../shared/paper';
 import { isDue } from '../shared/review';
 import { api, errorText } from './api';
-import { Library, type LibraryUi } from './library/Library';
+import { Library, type LibraryUi, type Naming } from './library/Library';
 import { PaperForm } from './library/PaperForm';
 import { pdfTitle } from './pdf';
 import { Reader, type ReaderHandle } from './reader/Reader';
@@ -31,6 +31,8 @@ interface PendingPdf {
 export function App() {
   const [state, setState] = useState<AppState | null>(null);
   const [papers, setPapers] = useState<PaperSummary[]>([]);
+  const [collections, setCollections] = useState<string[]>([]);
+  const [naming, setNaming] = useState<Naming | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>({ screen: 'library' });
   const [ui, setUiState] = useState<LibraryUi>({
@@ -44,6 +46,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [fullScreen, setFullScreen] = useState(false);
   const [today, setToday] = useState(localDate());
   const searchRef = useRef<HTMLInputElement>(null);
   const readerRef = useRef<ReaderHandle>(null);
@@ -55,7 +58,9 @@ export function App() {
 
   const refresh = useCallback(async () => {
     try {
-      setPapers(await api.listPapers());
+      const [list, names] = await Promise.all([api.listPapers(), api.listCollections()]);
+      setPapers(list);
+      setCollections(names);
       setLoaded(true);
     } catch (err) {
       report(err);
@@ -84,11 +89,20 @@ export function App() {
     return () => window.removeEventListener('focus', onFocus);
   }, [refresh, report]);
 
+  useEffect(() => api.onFullScreen(setFullScreen), []);
+
+  // Light or Dark from Settings wins over the system appearance.
+  useEffect(() => {
+    const theme = state?.appearance;
+    if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    else delete document.documentElement.dataset.theme;
+  }, [state?.appearance]);
+
   // Save anything pending before the window closes.
   useEffect(() => api.onFlush(async () => void (await readerRef.current?.flush())), []);
 
   const topics = useMemo(() => distinct(papers.flatMap((p) => p.meta.topics)), [papers]);
-  const courses = useMemo(() => distinct(papers.map((p) => p.meta.course)), [papers]);
+
   const dueIds = useMemo(
     () => sortPapers(papers.filter((p) => isDue(p.meta, today)), { key: 'lastWorked', dir: 'asc' }).map((p) => p.id),
     [papers, today],
@@ -105,9 +119,14 @@ export function App() {
     let cancelled = false;
     void pdfTitle(next.data).then((title) => {
       if (cancelled) return;
-      const course = ui.filter.kind === 'course' ? ui.filter.value : '';
+      const inCollection = ui.filter.kind === 'collection' ? [ui.filter.value] : [];
       const topicsPre = ui.filter.kind === 'topic' ? [ui.filter.value] : [];
-      setForm({ mode: 'new', initial: { title, course, topics: topicsPre }, pdfPath: next.path, pdfName: next.name });
+      setForm({
+        mode: 'new',
+        initial: { title, collections: inCollection, topics: topicsPre },
+        pdfPath: next.path,
+        pdfName: next.name,
+      });
     });
     return () => {
       cancelled = true;
@@ -124,9 +143,9 @@ export function App() {
   }, [queuePdfs, report]);
 
   const addEntry = useCallback(() => {
-    const course = ui.filter.kind === 'course' ? ui.filter.value : '';
+    const inCollection = ui.filter.kind === 'collection' ? [ui.filter.value] : [];
     const topicsPre = ui.filter.kind === 'topic' ? [ui.filter.value] : [];
-    setForm({ mode: 'new', initial: { course, topics: topicsPre } });
+    setForm({ mode: 'new', initial: { collections: inCollection, topics: topicsPre } });
   }, [ui.filter]);
 
   const closeForm = useCallback(() => {
@@ -252,17 +271,101 @@ export function App() {
     [report],
   );
 
+  // ----- Collections -----
+
+  /** Puts a paper in a collection, or takes it out. */
+  const setMembership = useCallback(
+    async (id: string, name: string, member: boolean) => {
+      try {
+        const doc = await api.readPaper(id);
+        const has = doc.meta.collections.some((c) => same(c, name));
+        if (has === member) return;
+        const next = member ? [...doc.meta.collections, name] : doc.meta.collections.filter((c) => !same(c, name));
+        await api.updatePaper(id, { meta: { collections: next } });
+        await readerRef.current?.reload();
+        await refresh();
+      } catch (err) {
+        report(err);
+      }
+    },
+    [refresh, report],
+  );
+
+  const menuOptions = useCallback(
+    (id: string) => {
+      const paper = papers.find((p) => p.id === id);
+      return {
+        due: !!paper && isDue(paper.meta, today),
+        collections,
+        member: collections.filter((c) => paper?.meta.collections.some((m) => same(m, c))),
+      };
+    },
+    [papers, collections, today],
+  );
+
+  const handleCollectionAction = useCallback(
+    (id: string, action: string | null) => {
+      if (action === 'new-collection') setNaming({ mode: 'new', addPaper: id });
+      else if (action?.startsWith('toggle:')) {
+        const name = action.slice('toggle:'.length);
+        const paper = papers.find((p) => p.id === id);
+        void setMembership(id, name, !paper?.meta.collections.some((c) => same(c, name)));
+      }
+    },
+    [papers, setMembership],
+  );
+
+  const paperCollectionsMenu = useCallback(
+    async (id: string) => handleCollectionAction(id, await api.paperCollectionsMenu(menuOptions(id))),
+    [handleCollectionAction, menuOptions],
+  );
+
+  async function nameCollection(name: string) {
+    const current = naming;
+    setNaming(null);
+    if (!current) return;
+    try {
+      if (current.mode === 'new') {
+        await api.createCollection(name);
+        if (current.addPaper) await setMembership(current.addPaper, name, true);
+      } else {
+        await api.renameCollection(current.from, name);
+        if (ui.filter.kind === 'collection' && same(ui.filter.value, current.from)) {
+          setUi({ filter: { kind: 'collection', value: name } });
+        }
+      }
+      await readerRef.current?.reload();
+      await refresh();
+    } catch (err) {
+      report(err);
+    }
+  }
+
+  async function collectionMenu(name: string) {
+    const action = await api.collectionContextMenu(name);
+    if (action === 'rename') setNaming({ mode: 'rename', from: name });
+    if (action === 'delete') {
+      try {
+        if (!(await api.deleteCollection(name))) return;
+        if (ui.filter.kind === 'collection' && same(ui.filter.value, name)) setUi({ filter: { kind: 'group', id: 'all' } });
+        await refresh();
+      } catch (err) {
+        report(err);
+      }
+    }
+  }
+
   const contextMenu = useCallback(
     async (id: string) => {
-      const paper = papers.find((p) => p.id === id);
-      const action = await api.paperContextMenu(id, { due: !!paper && isDue(paper.meta, today) });
+      const action = await api.paperContextMenu(id, menuOptions(id));
+      handleCollectionAction(id, action);
       if (action === 'open') openPaper(id);
       else if (action === 'review') void startReview([id]);
       else if (action === 'edit') void editPaper(id);
       else if (action === 'reveal') reveal(id);
       else if (action === 'trash') void trash(id);
     },
-    [papers, today, openPaper, startReview, editPaper, reveal, trash],
+    [menuOptions, handleCollectionAction, openPaper, startReview, editPaper, reveal, trash],
   );
 
   // ----- Menu and keyboard -----
@@ -358,7 +461,7 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app${isMac && !fullScreen ? ' window-buttons' : ''}`}>
       {state.guideProblem && (
         <div className="banner" role="status">
           <p>{state.guideProblem}</p>
@@ -379,6 +482,13 @@ export function App() {
         <Library
           guide={state.guide}
           papers={papers}
+          collections={collections}
+          naming={naming}
+          setNaming={setNaming}
+          onNameCollection={nameCollection}
+          onCollectionMenu={collectionMenu}
+          onDropOnCollection={(id, name) => void setMembership(id, name, true)}
+          onPaperCollectionsMenu={paperCollectionsMenu}
           loaded={loaded}
           today={today}
           ui={ui}
@@ -429,7 +539,7 @@ export function App() {
           initial={form.initial}
           pdfName={form.pdfName}
           topics={topics}
-          courses={courses}
+          collections={collections}
           onSave={saveForm}
           onCancel={closeForm}
         />
@@ -441,6 +551,7 @@ export function App() {
           onRevealLibrary={() => api.revealLibrary()}
           onRevealGuide={() => api.revealGuide()}
           onRestoreGuide={restoreGuide}
+          onAppearance={(appearance) => api.setAppearance(appearance).then(setState, report)}
           onClose={() => setSettingsOpen(false)}
         />
       )}
