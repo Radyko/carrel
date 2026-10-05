@@ -1,7 +1,7 @@
 {
   "name": "@radyko/carrel",
   "productName": "Carrel",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "A quiet desktop app that guides you through reading research papers, and keeps your papers and notes as plain files.",
   "keywords": [
     "research",
