@@ -97,8 +97,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "v$VERSION" release/* --target "$GITHUB_SHA" --title "Carrel $VERSION" --generate-notes
 
+  # Also runs when the GitHub release already exists, so re-running the
+  # workflow publishes a version that didn't reach npm the first time.
   npm:
-    needs: release
+    needs: [version, release]
+    if: always() && needs.version.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -113,6 +116,11 @@ jobs:
         run: |
           if [ -z "$NODE_AUTH_TOKEN" ]; then
             echo "No NPM_TOKEN secret; skipping npm. Run npm publish yourself if you want it there too."
+            exit 0
+          fi
+          version=$(node -p "require('./package.json').version")
+          if [ "$(npm view "@radyko/carrel@$version" version 2>/dev/null)" = "$version" ]; then
+            echo "$version is already on npm."
             exit 0
           fi
           npm publish --access public
