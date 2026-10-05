@@ -22,19 +22,27 @@ with a `src` folder, as after `npm link`) always runs itself.
 
 ## Releasing
 
+Merging to main releases Carrel whenever the merge changes the version in
+`package.json`. So a PR that should reach people bumps the version:
+
 ```sh
-npm version patch        # or minor; makes the commit and the v0.x.y tag
-git push --follow-tags
+npm version patch --no-git-tag-version   # or minor, for bigger changes
 ```
 
-The tag starts `.github/workflows/release.yml`, which:
+There's no tag to push. When the merge lands, `.github/workflows/release.yml`:
 
-1. builds a ready-made Carrel on GitHub's machines with
+1. checks whether that version already has a release, and stops if it does;
+2. builds a ready-made Carrel on GitHub's machines with
    `scripts/package-app.js`: `Carrel-mac-arm64.zip` and `Carrel-mac-x64.zip`
    on a Mac, `Carrel-linux-x64.tar.gz` on Linux;
-2. creates the GitHub release with those, `install.sh` and `latest.json`
-   (the version number);
-3. publishes to npm too, if the repository has an `NPM_TOKEN` secret.
+3. creates the GitHub release `v<version>` (and its tag) with those,
+   `install.sh` and `latest.json` (the version number);
+4. publishes to npm too, if the repository has an `NPM_TOKEN` secret.
+
+Within about 15 minutes of the release, open copies of Carrel show
+**Update ready**. If a release fails partway, fix it and merge again with the
+same version, or re-run the workflow from the Actions tab (Release → Run
+workflow).
 
 `.github/workflows/pages.yml` publishes `site/` to
 [radyko.github.io/carrel](https://radyko.github.io/carrel): the page people
