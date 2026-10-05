@@ -90,7 +90,7 @@ if [ $os = mac ]; then
   ditto -x -k "$tmp/$file" "$tmp/unpacked" || fail "the download was damaged. Try again."
   [ -d "$tmp/unpacked/Carrel.app" ] || fail "the download was damaged. Try again."
   stop_running "$dest/Carrel.app/Contents/MacOS/"
-  say "Installing to $dest…"
+  say "Installing to ${dest}…"
   rm -rf "$dest/Carrel.app"
   ditto "$tmp/unpacked/Carrel.app" "$dest/Carrel.app"
   xattr -cr "$dest/Carrel.app" 2>/dev/null || true
@@ -107,7 +107,7 @@ else
   tar -xzf "$tmp/$file" -C "$tmp/unpacked" || fail "the download was damaged. Try again."
   [ -x "$tmp/unpacked/electron" ] || fail "the download was damaged. Try again."
   stop_running "$target/electron"
-  say "Installing to $target…"
+  say "Installing to ${target}…"
   mkdir -p "$share"
   rm -rf "$target.new"
   mv "$tmp/unpacked" "$target.new"
