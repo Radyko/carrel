@@ -9,17 +9,18 @@
 # updates Carrel; the app's Update button runs it too.
 #
 #   CARREL_VERSION=0.6.0   install that version instead of the latest
-#   CARREL_DOWNLOAD=url    download from somewhere else (for testing)
+#   CARREL_RELEASES=url    use another copy of the releases (for testing)
+#   CARREL_DOWNLOAD=url    download this version's files from somewhere else (for testing)
 #   CARREL_QUIET=1         no progress bar (used by the app)
 set -eu
 
-repo=Radyko/carrel
+releases=${CARREL_RELEASES:-https://github.com/Radyko/carrel/releases}
 if [ -n "${CARREL_DOWNLOAD:-}" ]; then
   base=$CARREL_DOWNLOAD
 elif [ -n "${CARREL_VERSION:-}" ]; then
-  base=https://github.com/$repo/releases/download/v$CARREL_VERSION
+  base=$releases/download/v$CARREL_VERSION
 else
-  base=https://github.com/$repo/releases/latest/download
+  base=$releases/latest/download
 fi
 
 say() { printf '%s\n' "$*"; }

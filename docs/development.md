@@ -70,7 +70,12 @@ or Settings opens (all but Settings skip a check made in the last 30 seconds).
 version found, trying twice more if the download fails. The new version opens
 when that finishes. If it fails, the old one opens again, the output is in
 `update.log` in Carrel's logs folder, and a note in `update-pending.json` lets
-the next start say in Settings that the update didn't finish.
+the next start say in Settings that the update didn't finish. When it worked,
+that note tells the new version it has just been updated, and it checks once
+more before opening its window: if there's a newer version still (one released
+during the update, or the npm release lagging behind GitHub for a copy older
+than 0.6), it carries straight on to it. So one click always ends on the
+newest Carrel, and a step that doesn't move the version on stops the chain.
 `CARREL_RELEASES` and `CARREL_DOWNLOAD` point both at another copy of the
 releases, for testing.
 

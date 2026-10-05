@@ -26,12 +26,12 @@ export function installKind(): 'app' | 'source' {
     : 'source';
 }
 
-export async function checkForUpdate(): Promise<UpdateStatus> {
+export async function checkForUpdate(timeout = 10_000): Promise<UpdateStatus> {
   const version = app.getVersion();
   try {
     const res = await net.fetch(`${RELEASES}/latest/download/latest.json`, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(timeout),
     });
     if (!res.ok) return { state: 'offline' };
     const latest = ((await res.json()) as { version?: unknown }).version;
@@ -93,19 +93,39 @@ export async function installUpdate(): Promise<UpdateStart> {
 }
 
 /**
- * After an update, whether it worked: null when it did (or none was started),
- * otherwise a sentence saying it didn't. Reading it clears it.
+ * What happened to the last update: whether one just finished (this is its
+ * first start), and if it didn't finish, a sentence saying so. Reading it
+ * clears it.
  */
-export function updateOutcome(): string | null {
+export function updateOutcome(): { justUpdated: boolean; problem: string | null } {
+  const none = { justUpdated: false, problem: null };
   try {
     const pending = JSON.parse(fs.readFileSync(pendingPath(), 'utf8')) as { from?: string; to?: string; at?: number };
     fs.rmSync(pendingPath(), { force: true });
     const recent = typeof pending.at === 'number' && Date.now() - pending.at < 24 * 60 * 60 * 1000;
-    const changed = pending.from !== app.getVersion();
+    if (!recent) return none;
+    if (pending.from !== app.getVersion()) return { justUpdated: true, problem: null };
     const reached = typeof pending.to === 'string' && pending.to !== 'latest' && compareVersions(app.getVersion(), pending.to) >= 0;
-    if (!recent || changed || reached) return null;
-    return `The update to ${pending.to === 'latest' ? 'the newest version' : pending.to} didn’t finish. What happened is in ${logPath()}.`;
+    if (reached) return none;
+    return {
+      justUpdated: false,
+      problem: `The update to ${pending.to === 'latest' ? 'the newest version' : pending.to} didn’t finish. What happened is in ${logPath()}.`,
+    };
   } catch {
-    return null;
+    return none;
   }
+}
+
+/**
+ * Right after an update, carries on to a newer version if there is one, so a
+ * single click always ends on the newest Carrel. That happens when a release
+ * comes out during an update, or when an older Carrel updated through npm,
+ * which can lag behind the GitHub releases. Each step writes its own pending
+ * note, and a step that doesn't move the version on stops the chain, so this
+ * can't loop. True when an update has started and Carrel is quitting.
+ */
+export async function continueUpdate(): Promise<boolean> {
+  if (installKind() !== 'app') return false;
+  if ((await checkForUpdate(5_000)).state !== 'available') return false;
+  return (await installUpdate()).ok;
 }
