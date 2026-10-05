@@ -10,7 +10,7 @@ import { normalizeLook } from '../shared/look';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { loadGuide, restoreDefaultGuide, type LoadedGuide } from './storage/guideFile';
 import { Library } from './storage/library';
-import { checkForUpdate, installKind, installUpdate, UPDATE_COMMAND, updateOutcome } from './updates';
+import { checkForUpdate, continueUpdate, installKind, installUpdate, UPDATE_COMMAND, updateOutcome } from './updates';
 
 const APP_SCHEME = 'carrel';
 const appRoot = path.join(__dirname, '..', '..', '..');
@@ -339,7 +339,10 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.whenReady().then(async () => {
     settings = await loadSettings();
-    updateProblem = updateOutcome();
+    const outcome = updateOutcome();
+    updateProblem = outcome.problem;
+    // Just updated and there's a newer version still? Go on to it before opening.
+    if (outcome.justUpdated && (await continueUpdate())) return;
     nativeTheme.themeSource = settings.appearance;
     // CARREL_LIBRARY opens another library for this run only (useful for trying things out).
     const libraryPath = process.env.CARREL_LIBRARY ? path.resolve(process.env.CARREL_LIBRARY) : settings.libraryPath;

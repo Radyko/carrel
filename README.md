@@ -30,7 +30,8 @@ your applications menu. The same steps are on
 When there's a new version, **Update ready** appears at the bottom of the
 sidebar within about 15 minutes of its release. Click it, then **Update**.
 Carrel closes, updates itself, and opens again. Your papers and notes stay
-exactly as they are. Running the install line again also updates Carrel.
+exactly as they are. One click always gets the newest version, even if you
+skipped a few. Running the install line again also updates Carrel.
 
 To see which version you have, open **Settings**. The version number is under
 the title.
