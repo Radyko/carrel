@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/banner.png" alt="Carrel: a quiet study desk for reading research papers" width="100%">
-</p>
-
 Carrel walks you through a paper one step at a time, keeps your notes beside
 the PDF, and brings the paper back later so you remember it. Your notes are
 plain text files on your computer, and they belong to you.
