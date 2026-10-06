@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchesFilter, matchesSearch, sortPapers } from '../src/shared/libraryView';
+import { matchesFilter, matchesSearch, searchSnippet, sortPapers } from '../src/shared/libraryView';
 import { emptyMeta, type PaperMeta, type PaperSummary } from '../src/shared/paper';
 
 function paper(id: string, meta: Partial<PaperMeta>, searchText = ''): PaperSummary {
@@ -32,6 +32,19 @@ describe('library view', () => {
     expect(ids('arithmetic bounds')).toEqual(['b']);
     expect(ids('arithmetic attention')).toEqual([]);
     expect(ids('  ')).toEqual(['a', 'b', 'c']);
+  });
+
+  it('shows where a search matched in the notes', () => {
+    const notes = 'We read this for the seminar. The roofline model bounds performance by arithmetic intensity and memory bandwidth, which explains why the kernel stalls.';
+    const p = paper('d', { title: 'Roofline', authors: ['Williams'] }, notes);
+    expect(searchSnippet(p, 'roofline')).toBeNull();
+    expect(searchSnippet(p, 'roofline BANDWIDTH', 60)).toEqual({
+      before: '…and memory ',
+      match: 'bandwidth',
+      after: ', which explains why the kernel…',
+    });
+    expect(searchSnippet(paper('e', {}, 'short note'), 'note')).toEqual({ before: 'short ', match: 'note', after: '' });
+    expect(searchSnippet(p, '')).toBeNull();
   });
 
   it('sorts by column, keeping empty values last', () => {

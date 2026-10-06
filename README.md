@@ -51,6 +51,10 @@ the title.
 Everything saves as you type. Group papers into **collections**, such as one
 per course or project.
 
+While reading, ⌘F finds words in the paper, **Contents** lists its sections so
+you can jump between them, and **Focus mode** (⌘⇧F) hides everything but the
+paper and your notes.
+
 ## Make it yours
 
 In **Settings → Look**:

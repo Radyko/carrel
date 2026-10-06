@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import type { PDFViewer } from 'pdfjs-dist/web/pdf_viewer.mjs';
+import type { EventBus, PDFViewer } from 'pdfjs-dist/web/pdf_viewer.mjs';
 import {
   HIGHLIGHT_COLORS,
   mergeLineRects,
@@ -8,8 +8,9 @@ import {
   type HighlightColor,
   type Rect,
 } from '../../shared/highlights';
+import type { Section } from '../../shared/pdfSections';
 import { api, errorText } from '../api';
-import { loadPdfJs, loadPdfViewer } from '../pdf';
+import { loadPdfJs, loadPdfViewer, pdfSections } from '../pdf';
 
 export interface PdfHandle {
   zoomIn(): void;
@@ -20,6 +21,11 @@ export interface PdfHandle {
   highlightSelection(color?: HighlightColor): void;
   /** Scrolls a highlight into view. */
   revealHighlight(h: Highlight): void;
+  /** Opens the find bar, ready to type. */
+  openFind(): void;
+  /** Goes to the next (or previous) match, or opens the find bar. */
+  findAgain(previous: boolean): void;
+  toggleContents(): void;
 }
 
 /** A new highlight: the part of a selection on one page. */
@@ -39,6 +45,14 @@ interface Props {
 /** The colour picker shown under a fresh text selection. */
 type Popover = { x: number; y: number; parts: NewHighlight[] };
 
+function readContentsOpen(): boolean {
+  try {
+    return localStorage.getItem('carrel.contents') === 'open';
+  } catch {
+    return false;
+  }
+}
+
 const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'Yellow', green: 'Green', blue: 'Blue', pink: 'Pink' };
 
 export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref) {
@@ -52,6 +66,8 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerElRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<PDFViewer | null>(null);
+  const eventBusRef = useRef<EventBus | null>(null);
+  const docRef = useRef<PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(initialPage ?? 1);
   const [pageInput, setPageInput] = useState(String(initialPage ?? 1));
   const [pages, setPages] = useState(0);
@@ -61,6 +77,14 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   const onPageChangeRef = useRef(onPageChange);
   onPageChangeRef.current = onPageChange;
   const initialPageRef = useRef(initialPage);
+  const [find, setFind] = useState<{ query: string; current: number; total: number; searched: boolean } | null>(null);
+  const findInputRef = useRef<HTMLInputElement>(null);
+  const [contentsOpen, setContentsOpen] = useState(readContentsOpen);
+  const contentsOpenRef = useRef(contentsOpen);
+  contentsOpenRef.current = contentsOpen;
+  const [sections, setSections] = useState<Section[] | null>(null);
+  /** The page and height (in PDF units) at the top of the view. */
+  const [viewTop, setViewTop] = useState({ page: 1, top: Infinity });
 
   useEffect(() => {
     let cancelled = false;
@@ -77,13 +101,16 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         const container = containerRef.current!;
         const eventBus = new v.EventBus();
         const linkService = new v.PDFLinkService({ eventBus, externalLinkTarget: v.LinkTarget.BLANK });
+        const findController = new v.PDFFindController({ eventBus, linkService });
         viewer = new v.PDFViewer({
           container,
           viewer: viewerElRef.current!,
           eventBus,
           linkService,
+          findController,
           textLayerMode: 1,
         });
+        eventBusRef.current = eventBus;
         linkService.setViewer(viewer);
         viewerRef.current = viewer;
         // pdf.js redraws pages as you scroll and zoom; draw highlights onto each one.
@@ -101,6 +128,17 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
           setPageInput(String(e.pageNumber));
           onPageChangeRef.current(e.pageNumber);
         });
+        const onMatches = (e: { matchesCount: { current: number; total: number } }) =>
+          setFind((f) => f && { ...f, ...e.matchesCount, searched: true });
+        eventBus.on('updatefindmatchescount', onMatches);
+        eventBus.on('updatefindcontrolstate', (e: { state: number; matchesCount: { current: number; total: number } }) => {
+          // Pending searches report nothing yet; wait for the result.
+          if (e.state !== v.FindState.PENDING) onMatches(e);
+        });
+        eventBus.on('updateviewarea', (e: { location?: { pageNumber: number; top: number } }) => {
+          // Only the contents list needs this, so don't redraw for it otherwise.
+          if (e.location && contentsOpenRef.current) setViewTop({ page: e.location.pageNumber, top: e.location.top });
+        });
         eventBus.on('scalechanging', (e: { scale: number; presetValue?: string }) => {
           setScale(e.scale);
           setFit(e.presetValue === 'page-width');
@@ -110,6 +148,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         const doc = await loadingTask.promise;
         if (cancelled) return;
         setPages(doc.numPages);
+        docRef.current = doc;
         viewer.setDocument(doc);
         linkService.setDocument(doc);
       } catch (err) {
@@ -119,6 +158,10 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     return () => {
       cancelled = true;
       viewerRef.current = null;
+      eventBusRef.current = null;
+      docRef.current = null;
+      setSections(null);
+      setFind(null);
       viewer?.setDocument(null as unknown as PDFDocumentProxy);
       void task?.destroy();
     };
@@ -223,6 +266,79 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     }, 0);
   };
 
+  // Sections are found the first time the contents list is open for this paper.
+  useEffect(() => {
+    const doc = docRef.current;
+    if (!contentsOpen || !pages || !doc || sections) return;
+    let cancelled = false;
+    pdfSections(doc).then(
+      (found) => !cancelled && setSections(found),
+      () => !cancelled && setSections([]),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [contentsOpen, pages, sections]);
+
+  const toggleContents = () =>
+    setContentsOpen((open) => {
+      try {
+        localStorage.setItem('carrel.contents', open ? 'closed' : 'open');
+      } catch {
+        /* only a convenience */
+      }
+      return !open;
+    });
+
+  const goToSection = (s: Section) => {
+    const viewer = viewerRef.current;
+    if (!viewer || !viewer.pagesCount) return;
+    viewer.scrollPageIntoView({
+      pageNumber: s.page,
+      destArray: s.y === null ? undefined : [null, { name: 'XYZ' }, null, s.y + 6, null],
+      ignoreDestinationZoom: true,
+    });
+  };
+  // The section being read: the last one that starts above the top of the view, or just below it.
+  const started = (s: Section) => s.page < viewTop.page || (s.page === viewTop.page && (s.y === null || s.y >= viewTop.top - 60));
+  const currentSection = sections ? sections.reduce<Section | null>((cur, s) => (started(s) ? s : cur), null) : null;
+  const contentsRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    contentsRef.current?.querySelector('.contents-item.current')?.scrollIntoView({ block: 'nearest' });
+  }, [currentSection]);
+
+  // ----- Find -----
+
+  const search = (query: string, again = false, previous = false) => {
+    eventBusRef.current?.dispatch('find', {
+      source: null,
+      type: again ? 'again' : '',
+      query,
+      caseSensitive: false,
+      entireWord: false,
+      highlightAll: true,
+      findPrevious: previous,
+      matchDiacritics: false,
+    });
+  };
+  const openFind = () => {
+    const sel = window.getSelection();
+    const inPdf = !!sel && !sel.isCollapsed && !!containerRef.current?.contains(sel.anchorNode);
+    const picked = inPdf ? sel.toString().replace(/\s+/g, ' ').trim() : '';
+    if (picked && picked.length <= 80) {
+      setFind({ query: picked, current: 0, total: 0, searched: false });
+      search(picked);
+    } else {
+      setFind((f) => f ?? { query: '', current: 0, total: 0, searched: false });
+    }
+    setTimeout(() => findInputRef.current?.select(), 0);
+  };
+  const closeFind = () => {
+    eventBusRef.current?.dispatch('findbarclose', { source: null });
+    setFind(null);
+    containerRef.current?.focus();
+  };
+
   const go = (n: number) => {
     const viewer = viewerRef.current;
     if (!viewer || !viewer.pagesCount) return;
@@ -239,6 +355,12 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     fitWidth,
     goToPage: go,
     highlightSelection: (color) => addFromSelection(color),
+    openFind,
+    findAgain: (previous) => {
+      if (find?.query) search(find.query, true, previous);
+      else openFind();
+    },
+    toggleContents,
     revealHighlight: (h) => {
       go(h.page);
       // The page may still be drawing; wait for the highlight to appear, then centre it.
@@ -255,6 +377,14 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   return (
     <div className="pdf-pane">
       <div className="pdf-toolbar">
+        <button
+          className={`btn quiet small${contentsOpen ? ' on' : ''}`}
+          onClick={toggleContents}
+          title="Show or hide the paper's sections"
+          aria-pressed={contentsOpen}
+        >
+          Contents
+        </button>
         <button className="btn quiet icon small" onClick={() => go(page - 1)} disabled={page <= 1} title="Previous page">
           ‹
         </button>
@@ -283,8 +413,74 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         <button className={`btn quiet small${fit ? ' on' : ''}`} onClick={fitWidth} title="Fit to width">
           Fit width
         </button>
+        <button className={`btn quiet icon small${find ? ' on' : ''}`} onClick={() => (find ? closeFind() : openFind())} title="Find in this paper (⌘F)" aria-label="Find in this paper">
+          <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
-      <div className="pdf-body" ref={bodyRef}>
+      {find && (
+        <div className="pdf-find">
+          <input
+            ref={findInputRef}
+            className="find-input"
+            type="search"
+            placeholder="Find in this paper"
+            aria-label="Find in this paper"
+            value={find.query}
+            autoFocus
+            onChange={(e) => {
+              const query = e.target.value;
+              setFind({ query, current: 0, total: 0, searched: false });
+              search(query);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (find.query) search(find.query, true, e.shiftKey);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                closeFind();
+              }
+            }}
+          />
+          <span className="find-count muted" aria-live="polite">
+            {!find.query.trim() || !find.searched ? '' : find.total ? `${find.current} of ${find.total}` : 'Not found'}
+          </span>
+          <button className="btn quiet icon small" onClick={() => search(find.query, true, true)} disabled={!find.total} title="Previous match (⇧Return)" aria-label="Previous match">
+            ↑
+          </button>
+          <button className="btn quiet icon small" onClick={() => search(find.query, true)} disabled={!find.total} title="Next match (Return)" aria-label="Next match">
+            ↓
+          </button>
+          <button className="btn quiet small" onClick={closeFind}>
+            Done
+          </button>
+        </div>
+      )}
+      <div className={`pdf-body${contentsOpen ? ' with-contents' : ''}`} ref={bodyRef}>
+        {contentsOpen && (
+          <nav className="pdf-contents" aria-label="Sections" ref={contentsRef}>
+            {sections === null ? (
+              <p className="muted">Finding sections…</p>
+            ) : sections.length === 0 ? (
+              <p className="muted">Carrel couldn’t find section headings in this PDF.</p>
+            ) : (
+              sections.map((s, i) => (
+                <button
+                  key={i}
+                  className={`contents-item level-${s.level}${s === currentSection ? ' current' : ''}`}
+                  onClick={() => goToSection(s)}
+                  title={`${s.title} · page ${s.page}`}
+                >
+                  {s.title}
+                </button>
+              ))
+            )}
+          </nav>
+        )}
         {error ? (
           <div className="pdf-error">{error}</div>
         ) : (
