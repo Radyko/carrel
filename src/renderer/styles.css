@@ -823,8 +823,23 @@ button.chip:hover {
   opacity: 0.85;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
-.focus-actions .btn.on {
+/* Contents stays in the top left in focus mode, over the paper. */
+.focus-contents {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.reader.focus .pdf-contents {
+  padding-top: 42px;
+}
+.contents-toggle {
+  color: var(--text-2);
+}
+.contents-toggle.on {
   color: var(--accent-text);
+  background: var(--accent-soft);
 }
 .focus-actions .btn:hover,
 .focus-actions .btn:focus-visible {

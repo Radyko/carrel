@@ -65,6 +65,16 @@ const MAX_ZOOM = 8;
 
 const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'Yellow', green: 'Green', blue: 'Blue', pink: 'Pink' };
 
+/** A list of sections, drawn like the sidebar button in the library. */
+export function ContentsIcon() {
+  return (
+    <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden>
+      <rect x="0.75" y="0.75" width="14.5" height="12.5" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M4 4.5h8M4 7h8M4 9.5h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref) {
   const { paperId, initialPage, onPageChange } = props;
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -454,12 +464,13 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     >
       <div className="pdf-toolbar">
         <button
-          className={`btn quiet small${contentsOpen ? ' on' : ''}`}
+          className={`btn quiet icon contents-toggle${contentsOpen ? ' on' : ''}`}
           onClick={toggleContents}
-          title="Show or hide the paper's sections"
+          title={contentsOpen ? 'Hide the contents' : "Show the contents: the paper's sections"}
+          aria-label="Contents"
           aria-pressed={contentsOpen}
         >
-          Contents
+          <ContentsIcon />
         </button>
         <button className="btn quiet icon small" onClick={() => go(page - 1)} disabled={page <= 1} title="Previous page">
           ‹

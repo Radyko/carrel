@@ -5,7 +5,7 @@ import type { PaperDoc, PaperMeta, PaperPatch } from '../../shared/paper';
 import { initialStage, progressFromDecision, progressFromEdit } from '../../shared/progress';
 import { api } from '../api';
 import { HighlightCard } from './HighlightCard';
-import { PdfPane, type PdfHandle } from './PdfPane';
+import { ContentsIcon, PdfPane, type PdfHandle } from './PdfPane';
 import { PassTab, PurposeTab, SharedNotes } from './Stages';
 import { formatHighlights, newHighlightId, parseHighlights, type Highlight } from '../../shared/highlights';
 
@@ -469,16 +469,6 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
       {focus && props.isMac && <div className="focus-strip" />}
       {focus && (
         <div className="focus-actions">
-          {paperOnly && (
-            <button
-              className={`btn small${contentsOpen ? ' on' : ''}`}
-              onClick={() => pdfRef.current?.toggleContents()}
-              title="Show or hide the paper's sections"
-              aria-pressed={contentsOpen}
-            >
-              Contents
-            </button>
-          )}
           <button className="btn small focus-toggle" onClick={toggleFocus} title={`Leave focus mode (Esc or ${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}>
             Exit focus
           </button>
@@ -538,6 +528,17 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                 tone={props.tone}
                 onActivateHighlight={(id) => setActive(id ? { id, focus: false } : null)}
               />
+              {paperOnly && (
+                <button
+                  className={`btn icon focus-contents contents-toggle${contentsOpen ? ' on' : ''}`}
+                  onClick={() => pdfRef.current?.toggleContents()}
+                  title={contentsOpen ? 'Hide the contents' : "Show the contents: the paper's sections"}
+                  aria-label="Contents"
+                  aria-pressed={contentsOpen}
+                >
+                  <ContentsIcon />
+                </button>
+              )}
               {paperOnly && card && (
                 <div className="hl-float" style={cardAt}>
                   {card}
