@@ -56,6 +56,8 @@
     0 0 0 1px light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.08));
   --radius: 7px;
   --toolbar-h: 52px;
+  /* The bar above the PDF and the pass steps beside it, one height so they line up. */
+  --panel-bar-h: 38px;
 }
 
 :root[data-tone='linen'] {
@@ -759,12 +761,9 @@ button.chip:hover {
 }
 /* Focus mode: just the paper and the notes. */
 .reader.focus > .toolbar,
-.reader.focus .pdf-contents,
+.reader.focus .pdf-toolbar,
 .reader.focus .tabs {
   display: none;
-}
-.reader.focus .pdf-body.with-contents .pdf-scroll {
-  left: 0;
 }
 .notes-side[hidden] {
   display: none;
@@ -801,18 +800,25 @@ button.chip:hover {
 .reader {
   position: relative;
 }
-/* Always on screen in focus mode, so leaving is one click. */
-.focus-exit {
+/* Always on screen in focus mode, so the contents and leaving are one click away. */
+.focus-actions {
   position: absolute;
   top: 8px;
   right: 24px;
   z-index: 40;
-  opacity: 0.85;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 6px;
   -webkit-app-region: no-drag;
 }
-.focus-exit:hover,
-.focus-exit:focus-visible {
+.focus-actions .btn {
+  opacity: 0.85;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.focus-actions .btn.on {
+  color: var(--accent-text);
+}
+.focus-actions .btn:hover,
+.focus-actions .btn:focus-visible {
   opacity: 1;
 }
 .focus-hint {
@@ -868,31 +874,13 @@ button.chip:hover {
   color: var(--warn-text);
   font-weight: 600;
 }
-/* The reader's one toolbar: library, the PDF's controls, the title, Focus. */
+/* The reader's top bar: library, the title, Focus. */
 .reader-bar {
   gap: 4px;
 }
 .reader-bar .title {
-  flex: 1;
   min-width: 0;
   padding: 0 8px;
-  font-weight: 500;
-  color: var(--text-2);
-}
-.pdf-controls {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 12px;
-}
-.pdf-controls:empty {
-  display: none;
-}
-.pdf-controls .bar-gap {
-  width: 10px;
-}
-.pdf-controls .btn.on {
-  color: var(--accent-text);
 }
 .reader-body {
   flex: 1;
@@ -942,6 +930,23 @@ body.resizing .notes-side {
   display: flex;
   flex-direction: column;
   background: var(--pdf-bg);
+}
+.pdf-toolbar {
+  height: var(--panel-bar-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-subtle);
+  font-size: 12px;
+}
+.pdf-toolbar .spacer {
+  flex: 1;
+}
+.pdf-toolbar .btn.on {
+  color: var(--accent-text);
 }
 .page-input {
   width: 38px;
@@ -1108,9 +1113,12 @@ body.resizing .notes-side {
 }
 .tabs {
   flex: none;
+  height: var(--panel-bar-h);
+  align-items: center;
+  background: var(--bg-subtle);
   display: flex;
   gap: 4px;
-  padding: 8px 14px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--line);
   container-type: inline-size;
 }
@@ -1128,7 +1136,7 @@ body.resizing .notes-side {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  padding: 5px 6px;
+  padding: 3px 6px;
   color: var(--text-2);
   white-space: nowrap;
   cursor: default;

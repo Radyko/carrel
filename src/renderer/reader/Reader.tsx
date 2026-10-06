@@ -74,8 +74,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const [focus, setFocus] = useState(false);
   const [focusHint, setFocusHint] = useState(false);
   const pdfRef = useRef<PdfHandle>(null);
-  const [barStart, setBarStart] = useState<HTMLSpanElement | null>(null);
-  const [barEnd, setBarEnd] = useState<HTMLSpanElement | null>(null);
+  const [contentsOpen, setContentsOpen] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -469,9 +468,21 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
     <div className={`reader${focus ? ' focus' : ''}`}>
       {focus && props.isMac && <div className="focus-strip" />}
       {focus && (
-        <button className="btn focus-exit" onClick={toggleFocus} title={`Leave focus mode (Esc or ${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}>
-          Exit focus
-        </button>
+        <div className="focus-actions">
+          {paperOnly && (
+            <button
+              className={`btn${contentsOpen ? ' on' : ''}`}
+              onClick={() => pdfRef.current?.toggleContents()}
+              title="Show or hide the paper's sections"
+              aria-pressed={contentsOpen}
+            >
+              Contents
+            </button>
+          )}
+          <button className="btn" onClick={toggleFocus} title={`Leave focus mode (Esc or ${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}>
+            Exit focus
+          </button>
+        </div>
       )}
       {focusHint && (
         <div className="focus-hint" role="status">
@@ -482,12 +493,10 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         <button className="btn quiet" onClick={props.onBack} title="Back to the library">
           ‹ Library
         </button>
-        {/* The PDF's own controls (contents, page, zoom, find) are drawn into these two spots. */}
-        <span className="pdf-controls" ref={setBarStart} />
         <span className="title" title={doc.meta.title}>
           {doc.meta.title}
         </span>
-        <span className="pdf-controls" ref={setBarEnd} />
+        <span className="spacer" />
         <span className={`save-state ${saveState}`} aria-live="polite">
           {saveLabel[saveState]}
         </span>
@@ -513,7 +522,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
             <div className="pdf-side" ref={pdfSideRef} style={{ width: paperOnly ? '100%' : `${split * 100}%` }}>
               <PdfPane
                 ref={pdfRef}
-                toolbar={{ start: barStart, end: barEnd }}
+                onContentsChange={setContentsOpen}
                 paperId={doc.id}
                 initialPage={doc.meta.lastPage}
                 onPageChange={onPageChange}
