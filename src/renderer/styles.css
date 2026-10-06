@@ -481,9 +481,7 @@ table.papers tr.row.selected td {
   background: var(--bg-selected-strong);
   color: var(--on-accent);
 }
-.table-wrap:focus-within tr.row.selected .muted,
-
-.table-wrap:focus-within tr.row.selected .dots {
+.table-wrap:focus-within tr.row.selected .muted {
   color: var(--on-accent);
 }
 table.papers .snippet {
@@ -502,15 +500,6 @@ td.num {
 }
 .muted {
   color: var(--text-2);
-}
-
-.dots {
-  letter-spacing: 1px;
-  color: var(--accent);
-  font-size: 9px;
-}
-.dots .off {
-  opacity: 0.25;
 }
 
 .list-empty {
@@ -770,7 +759,6 @@ button.chip:hover {
 }
 /* Focus mode: just the paper and the notes. */
 .reader.focus > .toolbar,
-.reader.focus .pdf-toolbar,
 .reader.focus .pdf-contents,
 .reader.focus .tabs {
   display: none;
@@ -862,12 +850,49 @@ button.chip:hover {
 .save-state {
   font-size: 11px;
   color: var(--text-3);
-  min-width: 56px;
-  text-align: right;
+  white-space: nowrap;
+}
+.save-state:empty {
+  display: none;
+}
+/* A quick save never shows; one that takes a while fades in. */
+.save-state.saving {
+  animation: save-slow 1.6s step-end;
+}
+@keyframes save-slow {
+  0% {
+    opacity: 0;
+  }
 }
 .save-state.error {
   color: var(--warn-text);
   font-weight: 600;
+}
+/* The reader's one toolbar: library, the PDF's controls, the title, Focus. */
+.reader-bar {
+  gap: 4px;
+}
+.reader-bar .title {
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.pdf-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+}
+.pdf-controls:empty {
+  display: none;
+}
+.pdf-controls .bar-gap {
+  width: 10px;
+}
+.pdf-controls .btn.on {
+  color: var(--accent-text);
 }
 .reader-body {
   flex: 1;
@@ -917,23 +942,6 @@ body.resizing .notes-side {
   display: flex;
   flex-direction: column;
   background: var(--pdf-bg);
-}
-.pdf-toolbar {
-  height: 34px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-subtle);
-  font-size: 12px;
-}
-.pdf-toolbar .spacer {
-  flex: 1;
-}
-.pdf-toolbar .btn.on {
-  color: var(--accent-text);
 }
 .page-input {
   width: 38px;
@@ -1101,38 +1109,64 @@ body.resizing .notes-side {
 .tabs {
   flex: none;
   display: flex;
-  gap: 2px;
-  padding: 8px 14px 0;
+  gap: 4px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--line);
-  overflow-x: auto;
+  container-type: inline-size;
 }
 .notes-side.full .tabs {
   justify-content: center;
 }
+/* Equal steps that share the width, so all of them always fit. */
 .tab {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  justify-content: center;
+  gap: 5px;
   border: 0;
+  border-radius: 6px;
   background: transparent;
-  padding: 7px 12px 8px;
-  border-bottom: 2px solid transparent;
+  padding: 5px 6px;
   color: var(--text-2);
   white-space: nowrap;
   cursor: default;
 }
 .tab:hover {
+  background: var(--bg-hover);
   color: var(--text);
 }
 .tab.active {
-  color: var(--text);
-  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
   font-weight: 500;
 }
+.notes-side.full .tab {
+  flex: 0 1 180px;
+}
+.tab-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .tab-num {
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-3);
-  font-weight: 400;
+}
+.tab.active .tab-num {
+  color: inherit;
+}
+/* In a narrow panel the other passes show just their number. */
+@container (max-width: 430px) {
+  .tab:not(.active) .tab-num + .tab-title {
+    display: none;
+  }
+  .tab:not(.active):has(.tab-num) {
+    flex: 0 0 auto;
+    padding: 5px 10px;
+  }
 }
 .tab-done {
   color: var(--accent);
@@ -1291,6 +1325,24 @@ body.resizing .notes-side {
 }
 .question textarea.field {
   margin-top: 4px;
+}
+/* Soft note boxes: a gentle fill, with the question's hint inside as placeholder text. */
+.stage textarea.field,
+.shared textarea.field {
+  border-color: transparent;
+  background: color-mix(in oklab, var(--text) 4.5%, var(--bg));
+}
+.stage textarea.field:hover,
+.shared textarea.field:hover {
+  border-color: var(--line);
+}
+.stage textarea.field:focus,
+.shared textarea.field:focus {
+  background: var(--bg-field);
+  border-color: var(--accent);
+}
+textarea.field::placeholder {
+  color: var(--text-3);
 }
 
 .choices {

@@ -27,13 +27,20 @@ function Question({
         </label>
         {extra}
       </div>
-      {q.help && <p className="q-help">{q.help}</p>}
+      {/* A text box shows its hint inside it; lists keep theirs above. */}
+      {q.help && (q.type === 'checklist' || q.type === 'terms') && <p className="q-help">{q.help}</p>}
       {q.type === 'checklist' ? (
         <ChecklistField id={id} value={value} onChange={onChange} />
       ) : q.type === 'terms' ? (
         <TermsField id={id} value={value} onChange={onChange} />
       ) : (
-        <AutoTextarea id={id} minRows={q.type === 'long' ? 4 : 2} value={value} onChange={(e) => onChange(e.target.value)} />
+        <AutoTextarea
+          id={id}
+          minRows={q.type === 'long' ? 4 : 2}
+          value={value}
+          placeholder={q.help}
+          onChange={(e) => onChange(e.target.value)}
+        />
       )}
     </div>
   );
@@ -292,8 +299,13 @@ export function SharedNotes({
             {guide.notesHeading}
           </label>
         </div>
-        <p className="q-help">Anything that doesn’t fit the questions.</p>
-        <AutoTextarea id="free-notes" minRows={3} value={notes} onChange={(e) => onNotes(e.target.value)} />
+        <AutoTextarea
+          id="free-notes"
+          minRows={3}
+          value={notes}
+          placeholder="Anything that doesn’t fit the questions."
+          onChange={(e) => onNotes(e.target.value)}
+        />
       </div>
 
       {other.length > 0 && (
