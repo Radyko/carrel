@@ -5,6 +5,7 @@ import {
   distinct,
   matchesFilter,
   matchesSearch,
+  searchSnippet,
   sortPapers,
   type Filter,
   type Sort,
@@ -316,7 +317,7 @@ export function Library(props: Props) {
                     }}
                   >
                     {columns.map((c) => (
-                      <Cell key={c.key} column={c.key} paper={p} passes={guide.passes.length} />
+                      <Cell key={c.key} column={c.key} paper={p} passes={guide.passes.length} search={ui.search} />
                     ))}
                   </tr>
                 ))}
@@ -357,10 +358,24 @@ export function Library(props: Props) {
   );
 }
 
-function Cell({ column, paper: p, passes }: { column: SortKey; paper: PaperSummary; passes: number }) {
+function Cell({ column, paper: p, passes, search }: { column: SortKey; paper: PaperSummary; passes: number; search: string }) {
   switch (column) {
-    case 'title':
-      return <td title={p.meta.title}>{p.meta.title}</td>;
+    case 'title': {
+      // When the search matched in the notes, show where.
+      const snippet = searchSnippet(p, search);
+      return (
+        <td title={p.meta.title}>
+          {p.meta.title}
+          {snippet && (
+            <div className="snippet muted">
+              {snippet.before}
+              <mark>{snippet.match}</mark>
+              {snippet.after}
+            </div>
+          )}
+        </td>
+      );
+    }
     case 'author':
       return <td className="muted">{p.meta.authors[0] ?? ''}</td>;
     case 'year':

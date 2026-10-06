@@ -45,6 +45,8 @@ export type MenuAction =
   | 'add-entry'
   | 'settings'
   | 'find'
+  | 'find-next'
+  | 'find-previous'
   | 'library'
   | 'open'
   | 'reveal'
@@ -61,6 +63,8 @@ export type MenuAction =
   | 'zoom-out'
   | 'fit-width'
   | 'highlight'
+  | 'toggle-contents'
+  | 'focus'
   | 'toggle-sidebar';
 
 export type ContextAction = 'open' | 'reveal' | 'edit' | 'trash' | 'review' | 'new-collection' | `toggle:${string}`;

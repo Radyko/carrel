@@ -58,6 +58,44 @@ export function matchesSearch(p: PaperSummary, query: string): boolean {
   return words.every((w) => hay.includes(w));
 }
 
+export interface Snippet {
+  before: string;
+  match: string;
+  after: string;
+}
+
+/**
+ * Where a search matched in a paper's notes and highlights, for showing under
+ * its title. Null when the details alone (title, authors, ...) explain the match.
+ */
+export function searchSnippet(p: PaperSummary, query: string, width = 80): Snippet | null {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length || !p.searchText) return null;
+  const m = p.meta;
+  const details = fold([m.title, m.authors.join(' '), m.venue, m.collections.join(' '), m.topics.join(' '), m.year ?? ''].join('\n'));
+  const inNotes = words.filter((w) => !details.includes(fold(w)));
+  if (!inNotes.length) return null;
+  // Show a word only the notes contain, since that's why the paper is listed.
+  const ordered = [...inNotes, ...words];
+  const text = p.searchText.replace(/\s+/g, ' ');
+  const lower = text.toLowerCase();
+  for (const w of ordered) {
+    const at = lower.indexOf(w);
+    if (at < 0) continue;
+    const start = Math.max(0, at - Math.round((width - w.length) / 3));
+    const end = Math.min(text.length, start + width);
+    // Start and end on whole words.
+    const head = start > 0 ? text.slice(start, at).replace(/^\S*\s/, '') : text.slice(0, at);
+    const tail = end < text.length ? text.slice(at + w.length, end).replace(/\s\S*$/, '') : text.slice(at + w.length);
+    return {
+      before: (start > 0 ? '…' : '') + head,
+      match: text.slice(at, at + w.length),
+      after: tail + (end < text.length ? '…' : ''),
+    };
+  }
+  return null;
+}
+
 function sortValue(p: PaperSummary, key: SortKey): string | number | null {
   const m = p.meta;
   switch (key) {

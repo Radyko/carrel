@@ -55,6 +55,8 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
         { role: 'selectAll' },
         { type: 'separator' },
         item('Find', 'find', 'CmdOrCtrl+F'),
+        item('Find Next', 'find-next', 'CmdOrCtrl+G'),
+        item('Find Previous', 'find-previous', 'CmdOrCtrl+Shift+G'),
       ],
     },
     {
@@ -68,7 +70,9 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
         item('Pass 2', 'tab-3', 'CmdOrCtrl+3'),
         item('Pass 3', 'tab-4', 'CmdOrCtrl+4'),
         { type: 'separator' },
+        item('Focus Mode', 'focus', 'CmdOrCtrl+Shift+F'),
         item('Hide or Show PDF', 'toggle-pdf', 'CmdOrCtrl+Shift+P'),
+        item('Show or Hide Contents', 'toggle-contents', 'CmdOrCtrl+Shift+C'),
         item('Zoom In', 'zoom-in', 'CmdOrCtrl+='),
         item('Zoom Out', 'zoom-out', 'CmdOrCtrl+-'),
         item('Fit to Width', 'fit-width', 'CmdOrCtrl+0'),

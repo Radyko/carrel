@@ -13,6 +13,10 @@ export interface ReaderHandle {
   flush(): Promise<void>;
   reload(): Promise<void>;
   menu(action: MenuAction): void;
+  /** Opens Find in the PDF; false when the paper has no PDF to search. */
+  find(): boolean;
+  /** Handles Escape outside a text field; false to let it go back to the library. */
+  escape(): boolean;
 }
 
 interface Props {
@@ -68,6 +72,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const [pdfHidden, setPdfHidden] = useState(false);
   const [split, setSplit] = useState(readSplit);
+  const [focus, setFocus] = useState(false);
+  const [focusHint, setFocusHint] = useState(false);
   const pdfRef = useRef<PdfHandle>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -298,6 +304,21 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
     [changeMeta, commitTimer, goTo, guide, props, today],
   );
 
+  // ----- Focus mode -----
+
+  // Hides the toolbars and tabs, leaving the paper and the notes.
+  const toggleFocus = useCallback(() => {
+    setFocus((on) => {
+      setFocusHint(!on);
+      return !on;
+    });
+  }, []);
+  useEffect(() => {
+    if (!focusHint) return;
+    const t = window.setTimeout(() => setFocusHint(false), 2600);
+    return () => window.clearTimeout(t);
+  }, [focusHint]);
+
   // ----- Handle for the app -----
 
   useImperativeHandle(
@@ -332,9 +353,28 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         else if (action === 'zoom-out') pdfRef.current?.zoomOut();
         else if (action === 'fit-width') pdfRef.current?.fitWidth();
         else if (action === 'highlight') pdfRef.current?.highlightSelection();
+        else if (action === 'find-next' || action === 'find-previous') {
+          if (pdfRef.current) pdfRef.current.findAgain(action === 'find-previous');
+        } else if (action === 'toggle-contents') {
+          if (docRef.current?.pdfFile) {
+            setPdfHidden(false);
+            setTimeout(() => pdfRef.current?.toggleContents(), 0);
+          }
+        } else if (action === 'focus') toggleFocus();
+      },
+      find: () => {
+        if (!docRef.current?.pdfFile) return false;
+        setPdfHidden(false);
+        setTimeout(() => pdfRef.current?.openFind(), 0);
+        return true;
+      },
+      escape: () => {
+        if (!focus) return false;
+        toggleFocus();
+        return true;
       },
     }),
-    [commitTimer, flushSaves, goTo, guide.purpose.id, id, onError, stageId, stages, toggleTimer],
+    [commitTimer, flushSaves, focus, goTo, guide.purpose.id, id, onError, stageId, stages, toggleFocus, toggleTimer],
   );
 
   // ----- Divider -----
@@ -391,7 +431,13 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   };
 
   return (
-    <div className="reader">
+    <div className={`reader${focus ? ' focus' : ''}`}>
+      {focus && props.isMac && <div className="focus-strip" />}
+      {focusHint && (
+        <div className="focus-hint" role="status">
+          Focus mode. Press Esc or {props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'} to leave.
+        </div>
+      )}
       <div className={`toolbar${props.isMac ? ' inset' : ''}`}>
         <button className="btn quiet" onClick={props.onBack} title="Back to the library">
           ‹ Library
