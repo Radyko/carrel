@@ -125,7 +125,7 @@ releases that holds the latest version number. Nothing about you is sent.
 | ⌘1 – ⌘4 | Purpose, Pass 1, Pass 2, Pass 3 |
 | ⌘T | Start or pause the timer |
 | ⌘⇧P | Hide or show the PDF |
-| ⌘= / ⌘− / ⌘0 | Zoom in, zoom out, fit to width |
+| ⌘= / ⌘− / ⌘0 | Zoom in, zoom out, fit to width (or pinch on the trackpad) |
 | ⌘⇧H | Highlight the selected text |
 | ⌃⌘S (Ctrl+Alt+S on Linux) | Show or hide the sidebar |
 | ⌘I | Edit a paper's details |
