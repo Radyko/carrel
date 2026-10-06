@@ -140,7 +140,7 @@ releases that holds the latest version number. Nothing about you is sent.
 | ⌘⇧P | Hide or show the PDF |
 | ⌘⇧C | Show or hide the contents |
 | ⌘⇧F | Focus mode |
-| ⌘= / ⌘− / ⌘0 | Zoom in, zoom out, fit to width |
+| ⌘= / ⌘− / ⌘0 | Zoom in, zoom out, fit to width (or pinch on the trackpad) |
 | ⌘⇧H | Highlight the selected text |
 | ⌃⌘S (Ctrl+Alt+S on Linux) | Show or hide the sidebar |
 | ⌘I | Edit a paper's details |
