@@ -52,7 +52,7 @@ Everything saves as you type. Group papers into **collections**, such as one
 per course or project.
 
 While reading, ⌘F finds words in the paper, **Contents** lists its sections so
-you can jump between them, and **Focus mode** (⌘⇧F) hides everything but the
+you can jump between them, and the **Focus** button hides everything but the
 paper, with your highlight notes opening right on the page.
 
 ## Make it yours

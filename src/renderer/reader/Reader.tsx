@@ -466,9 +466,14 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   return (
     <div className={`reader${focus ? ' focus' : ''}`}>
       {focus && props.isMac && <div className="focus-strip" />}
+      {focus && (
+        <button className="btn focus-exit" onClick={toggleFocus} title={`Leave focus mode (Esc or ${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}>
+          Exit focus
+        </button>
+      )}
       {focusHint && (
         <div className="focus-hint" role="status">
-          Focus mode. Press Esc or {props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'} to leave.
+          Focus mode. Click Exit focus, or press Esc, to leave.
         </div>
       )}
       <div className={`toolbar${props.isMac ? ' inset' : ''}`}>
@@ -482,6 +487,13 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         <span className={`save-state ${saveState}`} aria-live="polite">
           {saveLabel[saveState]}
         </span>
+        <button
+          className="btn quiet small"
+          onClick={toggleFocus}
+          title={`Just the paper, nothing else (${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}
+        >
+          Focus
+        </button>
         {doc.pdfFile && (
           <button className="btn quiet small" onClick={() => setPdfHidden((h) => !h)}>
             {pdfHidden ? 'Show PDF' : 'Hide PDF'}
