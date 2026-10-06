@@ -167,9 +167,6 @@ export function PassTab(props: {
 
       {stage.checklist.length > 0 && (
         <>
-          {props.spotlight && props.spotlight.found.size > 0 && (
-            <p className="hint spot-hint">Click a step to light it up in the PDF.</p>
-          )}
           <ul className="checklist">
             {stage.checklist.map((c) => {
               const on = checked.includes(c.id);
@@ -198,7 +195,7 @@ export function PassTab(props: {
                         type="button"
                         className="spot-link"
                         aria-pressed={focused}
-                        title={focused ? 'Show all the steps again' : 'Show me in the PDF'}
+                        title={focused ? 'Pause the guide' : 'Show me in the PDF'}
                         onClick={() => spot.onFocus(focused ? null : c.id)}
                       >
                         {c.text}

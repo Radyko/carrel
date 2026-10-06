@@ -42,6 +42,8 @@ export interface Region {
   page: number;
   /** x, y, width, height as fractions of the page, like a highlight. */
   rect: Rect;
+  /** The heading's words, for headings. */
+  label?: string;
 }
 
 export type Landmarks = Record<LandmarkKind, Region[]>;
@@ -67,6 +69,8 @@ interface Column {
   bottom: number;
   /** Bottom of any text, small type such as a reference list included. */
   lowest: number;
+  /** Where running text starts: below a figure caption at the top of the column. */
+  textTop: number;
 }
 
 interface Layout {
@@ -88,7 +92,7 @@ function layoutOf(page: PageText, body: Body, first: boolean): Layout {
   const main = withWords.filter((l) => l.size >= body.size * 0.9);
   const lines = main.length >= 5 ? main : withWords;
   if (!lines.length) {
-    const all = { left: 0, right: width, top: 0, bottom: height, lowest: height };
+    const all = { left: 0, right: width, top: 0, bottom: height, lowest: height, textTop: 0 };
     return { width, height, left: 0, right: width, top: 0, bottom: height, mid: width / 2, cols: [all] };
   }
   const left = Math.min(...lines.map((l) => l.x));
@@ -101,7 +105,7 @@ function layoutOf(page: PageText, body: Body, first: boolean): Layout {
   const inRight = lines.filter((l) => l.x > mid - slack);
   const spanning = lines.length - inLeft.length - inRight.length;
   const lowest = (inCol: (l: Line) => boolean) => Math.max(bottom, ...withWords.filter(inCol).map(bottomOf));
-  const one: Column[] = [{ left, right, top, bottom, lowest: lowest(() => true) }];
+  const one: Column[] = [{ left, right, top, bottom, lowest: lowest(() => true), textTop: textTop(lines, top) }];
   if (inLeft.length < 5 || inRight.length < 5 || spanning > 0.3 * (inLeft.length + inRight.length)) {
     return { width, height, left, right, top, bottom, mid, cols: one };
   }
@@ -117,9 +121,22 @@ function layoutOf(page: PageText, body: Body, first: boolean): Layout {
       top: Math.min(...ls.map((l) => l.top)),
       bottom: Math.max(...ls.map(bottomOf)),
     };
-    return { ...c, lowest: Math.max(c.bottom, ...withWords.filter((l) => l.x >= c.left - 2 && l.x + l.width <= c.right + 2).map(bottomOf)) };
+    return {
+      ...c,
+      lowest: Math.max(c.bottom, ...withWords.filter((l) => l.x >= c.left - 2 && l.x + l.width <= c.right + 2).map(bottomOf)),
+      textTop: textTop(ls, c.top),
+    };
   };
   return { width, height, left, right, top, bottom, mid, cols: [col(inLeft), col(inRight)] };
+}
+
+/** The top of a column's running text, past a caption that opens it. */
+function textTop(lines: Line[], top: number): number {
+  const sorted = [...lines].sort((a, b) => a.top - b.top);
+  if (sorted.length < 4 || !CAPTION.test(sorted[0].text.trim())) return top;
+  let k = 1;
+  while (k < sorted.length && sorted[k].top - bottomOf(sorted[k - 1]) < sorted[k].size * 0.8) k++;
+  return sorted[k]?.top ?? top;
 }
 
 function colAt(layout: Layout, x: number): number {
@@ -279,28 +296,32 @@ function findHeadings(pages: PageText[], layouts: Layout[], outline: OutlineEntr
 
   const fromOutline: Heading[] = [];
   for (const e of outline) {
-    const page = pages[e.page - 1];
-    if (!page) continue;
-    const layout = layouts[e.page - 1];
     const want = headingWords(e.title);
-    if (!want) continue;
-    // The bookmark's own line on the page, nearest to where it points.
-    const matches = page.lines.filter((l) => {
-      const got = headingWords(l.text);
-      return got.length > 1 && (got === want || (got.startsWith(want) && got.length < want.length + 6) || want.startsWith(got));
-    });
+    if (!want || !pages[e.page - 1]) continue;
+    const matching = (n: number) =>
+      (pages[n - 1]?.lines ?? []).filter((l) => {
+        const got = headingWords(l.text);
+        return got.length > 1 && (got === want || (got.startsWith(want) && got.length < want.length + 6) || want.startsWith(got));
+      });
+    // The bookmark's own line, nearest to where it points. Some point just
+    // before a page break, at a heading that starts the next page.
     const near = (l: Line) => (e.top === null ? 0 : Math.abs(l.top - e.top)) + (e.x === null ? 0 : Math.abs(l.x - e.x) * 0.5);
-    const line = matches.sort((a, b) => near(a) - near(b))[0];
-    if (line && (e.top === null || near(line) < layout.height * 0.25)) {
+    const here = matching(e.page).sort((a, b) => near(a) - near(b))[0];
+    const layout = layouts[e.page - 1];
+    const fits = here && (e.top === null || near(here) < layout.height * 0.25);
+    const nextPage = !fits && e.top !== null && e.top > layout.height * 0.75 ? matching(e.page + 1).sort((a, b) => a.top - b.top)[0] : undefined;
+    const found = fits ? { line: here, page: e.page } : nextPage && nextPage.top < layouts[e.page].height * 0.35 ? { line: nextPage, page: e.page + 1 } : null;
+    if (found) {
+      const l = found.line;
       fromOutline.push({
-        page: e.page,
-        col: colAt(layout, line.x),
-        top: line.top,
-        bottom: bottomOf(line),
-        x: line.x,
-        width: line.width,
+        page: found.page,
+        col: colAt(layouts[found.page - 1], l.x),
+        top: l.top,
+        bottom: bottomOf(l),
+        x: l.x,
+        width: l.width,
         level: e.level,
-        text: line.text.trim(),
+        text: l.text.trim(),
         bookmarked: true,
       });
     } else if (e.top !== null) {
@@ -325,7 +346,9 @@ function findHeadings(pages: PageText[], layouts: Layout[], outline: OutlineEntr
   const headings = [...fromOutline];
   for (const h of fromText) {
     const dup = fromOutline.some(
-      (o) => o.page === h.page && (Math.abs(o.top - h.top) < body.size * 3 || headingWords(o.text) === headingWords(h.text)),
+      (o) =>
+        (o.page === h.page && Math.abs(o.top - h.top) < body.size * 3) ||
+        (Math.abs(o.page - h.page) <= 1 && headingWords(o.text) === headingWords(h.text)),
     );
     if (!dup) headings.push(h);
   }
@@ -355,9 +378,10 @@ function span(start: Pos, end: Pos | null, layouts: Layout[], maxPages: number, 
     const last = oneColumn ? first : endsHere ? Math.min(end.col, n - 1) : n - 1;
     for (let c = first; c <= last; c++) {
       const col = layout.cols[c];
-      const y0 = page === start.page && c === first ? start.top : col.top;
+      const y0 = page === start.page && c === first ? start.top : col.textTop;
       const y1 = endsHere && c === Math.min(end.col, n - 1) ? end.top : smallType ? col.lowest : col.bottom;
-      if (y1 - y0 > 4) regions.push(toRegion(page, layout, col.left, y0, col.right, y1 - 2));
+      // Stop clear of the next heading, padding and glow included.
+      if (y1 - y0 > 8) regions.push(toRegion(page, layout, col.left, y0, col.right, endsHere ? y1 - 7 : y1));
     }
     if (oneColumn) break;
   }
@@ -496,7 +520,10 @@ export function findLandmarks(pages: PageText[], outline: OutlineEntry[]): Landm
   }
   if (!found.abstract.length && pages[0]) found.abstract = unlabelledAbstract(pages[0], layouts[0], headings, title);
 
-  found.headings = headings.map((h) => toRegion(h.page, layouts[h.page - 1], h.x, h.top, h.x + h.width, h.bottom));
+  found.headings = headings.map((h) => ({
+    ...toRegion(h.page, layouts[h.page - 1], h.x, h.top, h.x + h.width, h.bottom),
+    label: h.text,
+  }));
   found.figures = figureRegions(pages, layouts, headings, body);
   return found;
 }

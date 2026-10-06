@@ -42,8 +42,8 @@ the title.
    - **Reconstruct** (a few hours): rebuild it and find its weak spots.
 
    Stopping after the first pass is normal. Most papers don't need more.
-   On the first pass, Carrel lights up the parts worth skimming and dims the
-   rest of the PDF.
+   On the first pass, a guide walks you through the parts worth skimming,
+   lighting up each one and dimming the rest of the PDF.
 4. **Highlight and comment.** Select text in the PDF, pick a colour, and write
    a note beside it.
 5. **Summarise from memory.** Carrel can hide the PDF while you write.

@@ -22,14 +22,13 @@ export interface PdfHandle {
   highlightSelection(color?: HighlightColor): void;
   /** Scrolls a highlight into view. */
   revealHighlight(h: Highlight): void;
-  /** Scrolls a spotlit region into view. */
-  revealRegion(r: Region): void;
+  /** Brings regions into view: centred if they fit, else from their top. Only the first region's page counts. */
+  revealRegions(regions: Region[]): void;
 }
 
-/** Parts of the pages to keep lit while the rest is dimmed; `focus`, when set, narrows them. */
+/** Parts of the pages to keep lit while everything else is dimmed. */
 export interface Spotlight {
-  regions: Region[];
-  focus: Region[] | null;
+  lit: (Region & { tag?: string })[];
 }
 
 /** A new highlight: the part of a selection on one page. */
@@ -47,8 +46,8 @@ interface Props {
   spotlight: Spotlight | null;
   /** Called once the paper's landmarks are found. */
   onLandmarks: (landmarks: Landmarks) => void;
-  /** More controls for the toolbar. */
-  toolbarExtra?: ReactNode;
+  /** Shown floating over the bottom of the PDF. */
+  overlay?: ReactNode;
 }
 
 /** The colour picker shown under a fresh text selection. */
@@ -109,7 +108,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         let looked = false;
         eventBus.on('pagerendered', (e: { pageNumber: number; source: { div: HTMLDivElement } }) => {
           drawHighlights(e.source.div, e.pageNumber, highlightsRef.current, activeRef.current);
-          drawSpotlight(e.source.div, e.pageNumber, spotlightRef.current);
+          drawSpotlight(e.source.div, e.pageNumber, spotlightRef.current, false);
           // Find the landmarks once the first page is on screen, so they never hold it up.
           if (!looked && viewer?.pdfDocument) {
             looked = true;
@@ -179,7 +178,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   // Redraw when the spotlight changes.
   useEffect(() => {
     containerRef.current?.querySelectorAll<HTMLDivElement>('.page[data-page-number]').forEach((div) => {
-      if (div.querySelector('.canvasWrapper')) drawSpotlight(div, Number(div.dataset.pageNumber), props.spotlight);
+      if (div.querySelector('.canvasWrapper')) drawSpotlight(div, Number(div.dataset.pageNumber), props.spotlight, true);
     });
   }, [props.spotlight]);
 
@@ -288,13 +287,21 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
       };
       tryScroll();
     },
-    revealRegion: (r) => {
+    revealRegions: (regions) => {
       const container = containerRef.current;
-      const pageDiv = container?.querySelector<HTMLDivElement>(`.page[data-page-number="${r.page}"]`);
-      if (!container || !pageDiv) return go(r.page);
+      const first = regions[0];
+      if (!first) return;
+      const pageDiv = container?.querySelector<HTMLDivElement>(`.page[data-page-number="${first.page}"]`);
+      if (!container || !pageDiv) return go(first.page);
       // Page boxes are laid out before they are drawn, so this works for any page.
-      const top = pageDiv.offsetTop + r.rect[1] * pageDiv.clientHeight - 24;
-      container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      const onPage = regions.filter((r) => r.page === first.page);
+      const h = pageDiv.clientHeight;
+      const top = pageDiv.offsetTop + Math.min(...onPage.map((r) => r.rect[1])) * h;
+      const bottom = pageDiv.offsetTop + Math.max(...onPage.map((r) => r.rect[1] + r.rect[3])) * h;
+      // Leave room at the bottom for the guide card.
+      const view = container.clientHeight - 170;
+      const target = bottom - top < view - 40 ? (top + bottom) / 2 - view / 2 : top - 40;
+      container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
     },
   }));
 
@@ -319,7 +326,6 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
           ›
         </button>
         <span className="spacer" />
-        {props.toolbarExtra}
         <button className="btn quiet icon small" onClick={zoomOut} title="Zoom out">
           −
         </button>
@@ -346,6 +352,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
             <div className="pdfViewer" ref={viewerElRef} />
           </div>
         )}
+        {props.overlay && <div className="pdf-overlay">{props.overlay}</div>}
         {popover && (
           <div
             className="hl-popover"
@@ -402,34 +409,67 @@ function drawHighlights(pageDiv: HTMLDivElement, page: number, highlights: Highl
 }
 
 /**
- * Dims a page except for the spotlit regions on it. Drawn between the page
- * image and its text, so selecting and highlighting work as usual.
+ * Dims a page except for the spotlit regions on it, which get rounded, soft
+ * edges and a glow. Drawn between the page image and its text, so selecting
+ * and highlighting work as usual. `fresh` fades it in (a new stop, not a
+ * page redrawn while scrolling).
  */
-function drawSpotlight(pageDiv: HTMLDivElement, page: number, spotlight: Spotlight | null): void {
+function drawSpotlight(pageDiv: HTMLDivElement, page: number, spotlight: Spotlight | null, fresh: boolean): void {
   pageDiv.querySelector(':scope > .carrel-spotlight')?.remove();
   if (!spotlight) return;
-  const lit = (spotlight.focus ?? spotlight.regions).filter((r) => r.page === page);
+  const w = pageDiv.clientWidth;
+  const h = pageDiv.clientHeight;
+  if (!w || !h) return;
+  // A little room around the text, in pixels, so the glow doesn't touch it.
+  const grow = Math.max(3, w * 0.006);
+  const radius = Math.max(6, w * 0.012);
+  const lit = spotlight.lit
+    .filter((r) => r.page === page)
+    .map((r) => {
+      const [x, y, rw, rh] = r.rect;
+      const left = Math.max(0, x * w - grow);
+      const top = Math.max(0, y * h - grow);
+      return { left, top, width: Math.min(w, (x + rw) * w + grow) - left, height: Math.min(h, (y + rh) * h + grow) - top, tag: r.tag };
+    });
+
   const NS = 'http://www.w3.org/2000/svg';
   const el = <K extends keyof SVGElementTagNameMap>(name: K, attrs: Record<string, string | number>) => {
     const node = document.createElementNS(NS, name);
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
     return node;
   };
-  const svg = el('svg', { class: 'carrel-spotlight', viewBox: '0 0 1 1', preserveAspectRatio: 'none', 'aria-hidden': 'true' });
-  const maskId = `carrel-spot-${page}`;
-  const mask = el('mask', { id: maskId, maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: 1, height: 1 });
-  mask.appendChild(el('rect', { x: 0, y: 0, width: 1, height: 1, fill: 'white' }));
-  for (const { rect: [x, y, w, h] } of lit) mask.appendChild(el('rect', { x, y, width: w, height: h, fill: 'black' }));
+  const layer = document.createElement('div');
+  layer.className = `carrel-spotlight${fresh ? ' fresh' : ''}`;
+  const svg = el('svg', { viewBox: `0 0 ${w} ${h}`, width: w, height: h, 'aria-hidden': 'true' });
+  const id = `carrel-spot-${page}`;
   const defs = el('defs', {});
+  const soften = el('filter', { id: `${id}-soft`, x: '-10%', y: '-10%', width: '120%', height: '120%' });
+  soften.appendChild(el('feGaussianBlur', { stdDeviation: Math.max(2, grow * 0.6) }));
+  defs.appendChild(soften);
+  const mask = el('mask', { id, maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: w, height: h });
+  mask.appendChild(el('rect', { x: 0, y: 0, width: w, height: h, fill: 'white' }));
+  const holes = el('g', { filter: `url(#${id}-soft)` });
+  for (const r of lit) holes.appendChild(el('rect', { x: r.left, y: r.top, width: r.width, height: r.height, rx: radius, fill: 'black' }));
+  mask.appendChild(holes);
   defs.appendChild(mask);
   svg.appendChild(defs);
-  svg.appendChild(el('rect', { class: 'spot-dim', x: 0, y: 0, width: 1, height: 1, mask: `url(#${maskId})` }));
-  if (spotlight.focus) {
-    for (const { rect: [x, y, w, h] } of lit) {
-      svg.appendChild(el('rect', { class: 'spot-ring', x, y, width: w, height: h, 'vector-effect': 'non-scaling-stroke' }));
-    }
+  svg.appendChild(el('rect', { class: 'spot-dim', x: 0, y: 0, width: w, height: h, mask: `url(#${id})` }));
+  for (const r of lit) {
+    svg.appendChild(el('rect', { class: 'spot-glow', x: r.left, y: r.top, width: r.width, height: r.height, rx: radius }));
+    svg.appendChild(el('rect', { class: 'spot-ring', x: r.left, y: r.top, width: r.width, height: r.height, rx: radius }));
+  }
+  layer.appendChild(svg);
+  // Name the part on the page, just above its top-left corner.
+  for (const r of lit) {
+    if (!r.tag) continue;
+    const tag = document.createElement('span');
+    tag.className = 'spot-tag';
+    tag.textContent = r.tag;
+    tag.style.left = `${r.left + radius * 0.6}px`;
+    tag.style.top = `${r.top}px`;
+    layer.appendChild(tag);
   }
   const text = pageDiv.querySelector(':scope > .textLayer');
-  if (text) text.before(svg);
-  else pageDiv.appendChild(svg);
+  if (text) text.before(layer);
+  else pageDiv.appendChild(layer);
 }

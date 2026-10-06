@@ -53,24 +53,29 @@ Move between the tabs freely. Everything saves as you type. Summary questions
 have a button that hides the PDF while you write from memory. Show it again
 afterwards to check what you missed.
 
-### Spotlight
+### Survey guide
 
-On the first pass, Carrel finds the parts a survey asks you to skim (the
-title, abstract, introduction, conclusion, section headings, figures and
-references) and dims the rest of the PDF, so the parts that matter stand out.
+On the first pass, a card over the PDF offers to walk you through the survey.
+Press **Start**, and Carrel lights up one part at a time, in the checklist's
+order, and dims the rest of the page:
 
-- Click a step in the checklist to show only its parts. The PDF jumps to the
-  first one, and a bar at the top of the PDF reads, say, "2 of 5 ·
-  Introduction and conclusion".
-- Press **›** to tick the step and move to the next, **‹** to go back.
-  Escape shows all the parts again.
-- **Spotlight** in the PDF toolbar turns the dimming off and on.
+1. the title and abstract,
+2. the introduction, page by page, then the conclusion,
+3. the section headings, also listed in the card as the paper's outline
+   (click one to jump to it),
+4. the figures and tables, page by page,
+5. the start of the references.
+
+The card says what to look for in each part. **Next** moves on, and finishing a
+step ticks it in the checklist. **Skip step** moves on without ticking.
+Escape pauses the guide, and **Resume** picks up where you were. Clicking a
+step in the checklist jumps straight to it.
 
 Carrel uses the PDF's bookmarks when it has them, and otherwise reads the page
 for headings and captions. Every PDF is laid out differently, so a step it
 can't find says "not found in this PDF", and a scanned PDF (a picture of the
-pages, with no text in it) has no spotlight at all. Everything is worked out
-on your computer; nothing is sent anywhere.
+pages, with no text in it) has no guide at all. Everything is worked out on
+your computer; nothing is sent anywhere.
 
 ## Highlights and notes
 
@@ -135,7 +140,7 @@ releases that holds the latest version number. Nothing about you is sent.
 | ⌘F | Search the library |
 | ↑ ↓, Return | Move through the list, open the selected paper |
 | ⌘⌫ | Move the selected paper to the Trash |
-| ⌘L or Escape | Back to the library (Escape first leaves a spotlit step) |
+| ⌘L or Escape | Back to the library (Escape first pauses the survey guide) |
 | ⌘1 – ⌘4 | Purpose, Pass 1, Pass 2, Pass 3 |
 | ⌘T | Start or pause the timer |
 | ⌘⇧P | Hide or show the PDF |

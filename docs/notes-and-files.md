@@ -119,8 +119,9 @@ top of the file explain the rules.
 
 A checklist step can have a `spotlight` list naming the parts of the PDF it is
 about: `title`, `abstract`, `introduction`, `conclusion`, `headings`,
-`figures` or `references`. While you are on that pass, those parts are lit
-and the rest of the PDF is dimmed. Leave `spotlight` out for no spotlight:
+`figures` or `references`. The survey guide walks through those steps in
+order, lighting up their parts and dimming the rest of the PDF. Leave
+`spotlight` out and the step isn't part of the guide:
 
 ```yaml
 checklist:

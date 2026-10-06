@@ -6,9 +6,11 @@ import { initialStage, progressFromDecision, progressFromEdit } from '../../shar
 import { api } from '../api';
 import { HighlightCard } from './HighlightCard';
 import { PdfPane, type PdfHandle, type Spotlight } from './PdfPane';
+import { buildStops, type Stop } from '../../shared/tour';
+import { TourCard } from './Tour';
 import { PassTab, PurposeTab, SharedNotes } from './Stages';
 import { formatHighlights, newHighlightId, parseHighlights, type Highlight } from '../../shared/highlights';
-import type { Landmarks, Region } from '../../shared/landmarks';
+import type { Landmarks } from '../../shared/landmarks';
 
 export interface ReaderHandle {
   flush(): Promise<void>;
@@ -48,15 +50,14 @@ function isEmpty(p: PaperPatch): boolean {
   return !p.meta && !p.answers && p.notes === undefined && p.highlights === undefined;
 }
 
-const SPOTLIGHT_KEY = 'carrel.spotlight';
-
-function readSpotlightOn(): boolean {
-  try {
-    return localStorage.getItem(SPOTLIGHT_KEY) !== 'off';
-  } catch {
-    return true;
-  }
+/** The survey guide: open or closed, the stop shown (null: none), and where Start picks up (null: the first step not ticked). */
+interface TourState {
+  open: boolean;
+  index: number | null;
+  resumeAt: number | null;
+  done: boolean;
 }
+const NEW_TOUR: TourState = { open: true, index: null, resumeAt: null, done: false };
 
 function readSplit(): number {
   try {
@@ -79,8 +80,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const pdfRef = useRef<PdfHandle>(null);
   /** Where the paper's parts are, once found; and the checklist step being shown. */
   const [landmarks, setLandmarks] = useState<Landmarks | null>(null);
-  const [spotlightOn, setSpotlightOn] = useState(readSpotlightOn);
-  const [focusStep, setFocusStep] = useState<string | null>(null);
+  const [tour, setTour] = useState<TourState>(NEW_TOUR);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -93,7 +93,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         if (cancelled) return;
         setDoc(d);
         setLandmarks(null);
-        setFocusStep(null);
+        setTour(NEW_TOUR);
         setStageId(initialStage(d.meta, guide));
       },
       (err) => {
@@ -294,7 +294,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const stages = allStages(guide);
   const goTo = useCallback((stage: string) => {
     setStageId(stage);
-    setFocusStep(null);
+    setTour(NEW_TOUR);
     scrollRef.current?.scrollTo({ top: 0 });
   }, []);
 
@@ -385,59 +385,33 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const highlightsText = doc?.highlights ?? '';
   const highlights = useMemo(() => parseHighlights(highlightsText).items, [highlightsText]);
 
-  // ----- Spotlight -----
-  // The current pass's checklist steps, each with the parts of the PDF it is about.
+  // ----- Survey guide -----
+  // The current pass's checklist, as stops that light up one part of the PDF at a time.
   const current = stages.find((s) => s.id === stageId) ?? stages[0];
-  const spotSteps = useMemo(() => {
-    if (!landmarks || current.kind !== 'pass') return [];
-    return current.checklist
-      .filter((c) => c.spotlight.length)
-      .map((c) => ({ id: c.id, text: c.text, regions: c.spotlight.flatMap((k) => landmarks[k]) }));
-  }, [landmarks, current]);
-  const spotFound = useMemo(() => spotSteps.filter((s) => s.regions.length), [spotSteps]);
+  const stops = useMemo<Stop[]>(
+    () => (landmarks && current.kind === 'pass' ? buildStops(current.checklist, landmarks) : []),
+    [landmarks, current],
+  );
   const pdfShown = !!doc?.pdfFile && !pdfHidden;
-  const spotActive = pdfShown && spotlightOn && spotFound.length > 0;
-  const focusIndex = spotActive && focusStep ? spotFound.findIndex((s) => s.id === focusStep) : -1;
-  const spotlight = useMemo<Spotlight | null>(() => {
-    if (!spotActive) return null;
-    const regions: Region[] = spotFound.flatMap((s) => s.regions);
-    return { regions, focus: focusIndex >= 0 ? spotFound[focusIndex].regions : null };
-  }, [spotActive, spotFound, focusIndex]);
+  const tourIndex = tour.index !== null && tour.index < stops.length ? tour.index : null;
+  const spotlight = useMemo<Spotlight | null>(
+    () => (pdfShown && tourIndex !== null ? { lit: stops[tourIndex].lit } : null),
+    [pdfShown, tourIndex, stops],
+  );
 
-  const setSpotlight = (on: boolean) => {
-    setSpotlightOn(on);
-    if (!on) setFocusStep(null);
-    try {
-      localStorage.setItem(SPOTLIGHT_KEY, on ? 'on' : 'off');
-    } catch {
-      /* only a convenience */
-    }
-  };
-  /** Shows one checklist step's parts of the PDF, or all of them again (null). */
-  const focusOn = (stepId: string | null) => {
-    setFocusStep(stepId);
-    const step = stepId ? spotFound.find((s) => s.id === stepId) : null;
-    if (!step) return;
-    if (!spotlightOn) setSpotlight(true);
-    if (pdfHidden) setPdfHidden(false);
-    setTimeout(() => pdfRef.current?.revealRegion(step.regions[0]), pdfHidden ? 400 : 0);
-  };
-  const latestFocus = useRef(focusOn);
-  latestFocus.current = focusOn;
-
-  // Escape goes back from one step to all of them, before it would leave the paper.
+  // Escape pauses the guide, before it would leave the paper.
   useEffect(() => {
-    if (focusIndex < 0) return;
+    if (tourIndex === null) return;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
       if (e.key !== 'Escape' || typing) return;
       e.stopImmediatePropagation();
-      latestFocus.current(null);
+      setTour((s) => ({ ...s, index: null, resumeAt: s.index }));
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [focusIndex]);
+  }, [tourIndex]);
 
   if (!doc) return <div className="loading">Opening…</div>;
 
@@ -454,47 +428,58 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const stage = current;
   const setChecked = (stageId: string, ids: string[]) =>
     changeMeta({ checklist: { ...doc.meta.checklist, [stageId]: ids }, ...progressFromEdit(doc.meta, guide, stageId) });
-  /** Moves to the next or previous step; moving on ticks the step you leave. */
-  const step = (dir: 1 | -1) => {
-    if (focusIndex < 0 || stage.kind !== 'pass') return;
-    if (dir === 1) {
-      const checked = doc.meta.checklist[stage.id] ?? [];
-      const leaving = spotFound[focusIndex].id;
-      if (!checked.includes(leaving)) {
-        setChecked(stage.id, stage.checklist.map((c) => c.id).filter((c) => c === leaving || checked.includes(c)));
-      }
-    }
-    focusOn(spotFound[focusIndex + dir]?.id ?? null);
+  const checked = stage.kind === 'pass' ? doc.meta.checklist[stage.id] ?? [] : [];
+  const tick = (stepId: string) => {
+    if (stage.kind !== 'pass' || checked.includes(stepId)) return;
+    setChecked(stage.id, stage.checklist.map((c) => c.id).filter((c) => c === stepId || checked.includes(c)));
   };
-  const spotControls =
-    pdfShown && spotFound.length > 0 ? (
-      <>
-        {focusIndex >= 0 && (
-          <span className="spot-nav">
-            <button className="btn quiet icon small" onClick={() => step(-1)} disabled={focusIndex === 0} title="Previous step">
-              ‹
-            </button>
-            <span className="spot-label" title={spotFound[focusIndex].text}>
-              {focusIndex + 1} of {spotFound.length} · {spotFound[focusIndex].text}
-            </span>
-            <button
-              className="btn quiet icon small"
-              onClick={() => step(1)}
-              title={focusIndex === spotFound.length - 1 ? 'Done: tick it and show everything' : 'Tick it and go to the next step'}
-            >
-              {focusIndex === spotFound.length - 1 ? '✓' : '›'}
-            </button>
-          </span>
-        )}
-        <button
-          className={`btn quiet small${spotlightOn ? ' on' : ''}`}
-          onClick={() => setSpotlight(!spotlightOn)}
-          title={spotlightOn ? 'Stop dimming the PDF' : 'Light up what this pass asks you to skim, and dim the rest'}
-          aria-pressed={spotlightOn}
-        >
-          Spotlight
+  /** Shows a stop: lights it up and brings it into view. */
+  const goToStop = (index: number) => {
+    const stop = stops[index];
+    if (!stop) return;
+    setTour({ open: true, index, resumeAt: null, done: false });
+    if (pdfHidden) setPdfHidden(false);
+    setTimeout(() => pdfRef.current?.revealRegions(stop.lit), pdfHidden ? 400 : 0);
+  };
+  const finishTour = () => setTour({ open: true, index: null, resumeAt: null, done: true });
+  /** Next stop; leaving a step's last stop ticks the step. */
+  const nextStop = () => {
+    if (tourIndex === null) return;
+    const stop = stops[tourIndex];
+    if (stop.part === stop.parts - 1) tick(stop.stepId);
+    if (tourIndex === stops.length - 1) finishTour();
+    else goToStop(tourIndex + 1);
+  };
+  /** On to the next step, without ticking this one. */
+  const skipStep = () => {
+    if (tourIndex === null) return;
+    const next = stops.findIndex((s, i) => i > tourIndex && s.step !== stops[tourIndex].step);
+    if (next < 0) finishTour();
+    else goToStop(next);
+  };
+  // Start picks up where you paused, or at the first step not yet ticked.
+  const firstUnticked = Math.max(0, stops.findIndex((s) => s.part === 0 && !checked.includes(s.stepId)));
+  const resumeAt = tour.resumeAt ?? firstUnticked;
+  const tourOverlay =
+    pdfShown && stops.length > 0 ? (
+      tour.open ? (
+        <TourCard
+          stops={stops}
+          index={tourIndex}
+          resumeAt={Math.min(resumeAt, stops.length - 1)}
+          done={tour.done}
+          onGo={goToStop}
+          onNext={nextStop}
+          onSkip={skipStep}
+          onRestart={() => goToStop(0)}
+          onClose={() => setTour((s) => ({ ...s, open: false, index: null, done: false, resumeAt: s.index ?? s.resumeAt }))}
+          onReveal={(r) => pdfRef.current?.revealRegions([r])}
+        />
+      ) : (
+        <button className="tour-pill" onClick={() => setTour((s) => ({ ...s, open: true }))}>
+          Survey guide
         </button>
-      </>
+      )
     ) : null;
   const saveLabel: Record<SaveState, string> = {
     saved: 'Saved',
@@ -548,7 +533,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                 onActivateHighlight={(id) => setActive(id ? { id, focus: false } : null)}
                 spotlight={spotlight}
                 onLandmarks={setLandmarks}
-                toolbarExtra={spotControls}
+                overlay={tourOverlay}
               />
             </div>
             <div className="divider" onPointerDown={startDrag} role="separator" aria-orientation="vertical" />
@@ -618,11 +603,15 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                   onToggleTimer={() => toggleTimer(stage.id)}
                   onCheck={(ids) => setChecked(stage.id, ids)}
                   spotlight={
-                    doc.pdfFile && spotSteps.length
+                    doc.pdfFile && landmarks && stage.checklist.some((c) => c.spotlight.length)
                       ? {
-                          found: new Set(spotFound.map((s) => s.id)),
-                          focus: focusIndex >= 0 ? spotFound[focusIndex].id : null,
-                          onFocus: focusOn,
+                          found: new Set(stops.map((s) => s.stepId)),
+                          focus: tourIndex !== null ? stops[tourIndex].stepId : null,
+                          onFocus: (stepId) => {
+                            const first = stepId ? stops.findIndex((s) => s.stepId === stepId) : -1;
+                            if (first >= 0) goToStop(first);
+                            else setTour((s) => ({ ...s, index: null, resumeAt: s.index }));
+                          },
                         }
                       : null
                   }
