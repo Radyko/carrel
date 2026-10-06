@@ -5,9 +5,12 @@ import type { PaperDoc, PaperMeta, PaperPatch } from '../../shared/paper';
 import { initialStage, progressFromDecision, progressFromEdit } from '../../shared/progress';
 import { api } from '../api';
 import { HighlightCard } from './HighlightCard';
-import { PdfPane, type PdfHandle } from './PdfPane';
+import { PdfPane, type PdfHandle, type Spotlight } from './PdfPane';
+import { buildStops, type Stop } from '../../shared/tour';
+import { TourCard } from './Tour';
 import { PassTab, PurposeTab, SharedNotes } from './Stages';
 import { formatHighlights, newHighlightId, parseHighlights, type Highlight } from '../../shared/highlights';
+import type { Landmarks } from '../../shared/landmarks';
 
 export interface ReaderHandle {
   flush(): Promise<void>;
@@ -47,6 +50,15 @@ function isEmpty(p: PaperPatch): boolean {
   return !p.meta && !p.answers && p.notes === undefined && p.highlights === undefined;
 }
 
+/** The survey guide: open or closed, the stop shown (null: none), and where Start picks up (null: the first step not ticked). */
+interface TourState {
+  open: boolean;
+  index: number | null;
+  resumeAt: number | null;
+  done: boolean;
+}
+const NEW_TOUR: TourState = { open: true, index: null, resumeAt: null, done: false };
+
 function readSplit(): number {
   try {
     const v = Number(localStorage.getItem('carrel.split'));
@@ -66,6 +78,9 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const [pdfHidden, setPdfHidden] = useState(false);
   const [split, setSplit] = useState(readSplit);
   const pdfRef = useRef<PdfHandle>(null);
+  /** Where the paper's parts are, once found; and the checklist step being shown. */
+  const [landmarks, setLandmarks] = useState<Landmarks | null>(null);
+  const [tour, setTour] = useState<TourState>(NEW_TOUR);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -77,6 +92,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
       (d) => {
         if (cancelled) return;
         setDoc(d);
+        setLandmarks(null);
+        setTour(NEW_TOUR);
         setStageId(initialStage(d.meta, guide));
       },
       (err) => {
@@ -277,6 +294,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const stages = allStages(guide);
   const goTo = useCallback((stage: string) => {
     setStageId(stage);
+    setTour(NEW_TOUR);
     scrollRef.current?.scrollTo({ top: 0 });
   }, []);
 
@@ -367,6 +385,34 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const highlightsText = doc?.highlights ?? '';
   const highlights = useMemo(() => parseHighlights(highlightsText).items, [highlightsText]);
 
+  // ----- Survey guide -----
+  // The current pass's checklist, as stops that light up one part of the PDF at a time.
+  const current = stages.find((s) => s.id === stageId) ?? stages[0];
+  const stops = useMemo<Stop[]>(
+    () => (landmarks && current.kind === 'pass' ? buildStops(current.checklist, landmarks) : []),
+    [landmarks, current],
+  );
+  const pdfShown = !!doc?.pdfFile && !pdfHidden;
+  const tourIndex = tour.index !== null && tour.index < stops.length ? tour.index : null;
+  const spotlight = useMemo<Spotlight | null>(
+    () => (pdfShown && tourIndex !== null ? { lit: stops[tourIndex].lit } : null),
+    [pdfShown, tourIndex, stops],
+  );
+
+  // Escape pauses the guide, before it would leave the paper.
+  useEffect(() => {
+    if (tourIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      if (e.key !== 'Escape' || typing) return;
+      e.stopImmediatePropagation();
+      setTour((s) => ({ ...s, index: null, resumeAt: s.index }));
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [tourIndex]);
+
   if (!doc) return <div className="loading">Opening…</div>;
 
   const showPdf = !!doc.pdfFile && !pdfHidden;
@@ -379,7 +425,62 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   };
   const purposeField = purposeQuestionsField(guide);
   const purposeQuestions = purposeField ? doc.answers[guide.purpose.id]?.[purposeField.id] ?? '' : '';
-  const stage = stages.find((s) => s.id === stageId) ?? stages[0];
+  const stage = current;
+  const setChecked = (stageId: string, ids: string[]) =>
+    changeMeta({ checklist: { ...doc.meta.checklist, [stageId]: ids }, ...progressFromEdit(doc.meta, guide, stageId) });
+  const checked = stage.kind === 'pass' ? doc.meta.checklist[stage.id] ?? [] : [];
+  const tick = (stepId: string) => {
+    if (stage.kind !== 'pass' || checked.includes(stepId)) return;
+    setChecked(stage.id, stage.checklist.map((c) => c.id).filter((c) => c === stepId || checked.includes(c)));
+  };
+  /** Shows a stop: lights it up and brings it into view. */
+  const goToStop = (index: number) => {
+    const stop = stops[index];
+    if (!stop) return;
+    setTour({ open: true, index, resumeAt: null, done: false });
+    if (pdfHidden) setPdfHidden(false);
+    setTimeout(() => pdfRef.current?.revealRegions(stop.lit), pdfHidden ? 400 : 0);
+  };
+  const finishTour = () => setTour({ open: true, index: null, resumeAt: null, done: true });
+  /** Next stop; leaving a step's last stop ticks the step. */
+  const nextStop = () => {
+    if (tourIndex === null) return;
+    const stop = stops[tourIndex];
+    if (stop.part === stop.parts - 1) tick(stop.stepId);
+    if (tourIndex === stops.length - 1) finishTour();
+    else goToStop(tourIndex + 1);
+  };
+  /** On to the next step, without ticking this one. */
+  const skipStep = () => {
+    if (tourIndex === null) return;
+    const next = stops.findIndex((s, i) => i > tourIndex && s.step !== stops[tourIndex].step);
+    if (next < 0) finishTour();
+    else goToStop(next);
+  };
+  // Start picks up where you paused, or at the first step not yet ticked.
+  const firstUnticked = Math.max(0, stops.findIndex((s) => s.part === 0 && !checked.includes(s.stepId)));
+  const resumeAt = tour.resumeAt ?? firstUnticked;
+  const tourOverlay =
+    pdfShown && stops.length > 0 ? (
+      tour.open ? (
+        <TourCard
+          stops={stops}
+          index={tourIndex}
+          resumeAt={Math.min(resumeAt, stops.length - 1)}
+          done={tour.done}
+          onGo={goToStop}
+          onNext={nextStop}
+          onSkip={skipStep}
+          onRestart={() => goToStop(0)}
+          onClose={() => setTour((s) => ({ ...s, open: false, index: null, done: false, resumeAt: s.index ?? s.resumeAt }))}
+          onReveal={(r) => pdfRef.current?.revealRegions([r])}
+        />
+      ) : (
+        <button className="tour-pill" onClick={() => setTour((s) => ({ ...s, open: true }))}>
+          Survey guide
+        </button>
+      )
+    ) : null;
   const saveLabel: Record<SaveState, string> = {
     saved: 'Saved',
     pending: 'Editing',
@@ -430,6 +531,9 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                 }}
                 activeHighlightId={active?.id ?? null}
                 onActivateHighlight={(id) => setActive(id ? { id, focus: false } : null)}
+                spotlight={spotlight}
+                onLandmarks={setLandmarks}
+                overlay={tourOverlay}
               />
             </div>
             <div className="divider" onPointerDown={startDrag} role="separator" aria-orientation="vertical" />
@@ -497,7 +601,20 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                   elapsed={elapsed(stage.id)}
                   timerRunning={running?.stage === stage.id}
                   onToggleTimer={() => toggleTimer(stage.id)}
-                  onCheck={(ids) => changeMeta({ checklist: { ...doc.meta.checklist, [stage.id]: ids }, ...progressFromEdit(doc.meta, guide, stage.id) })}
+                  onCheck={(ids) => setChecked(stage.id, ids)}
+                  spotlight={
+                    doc.pdfFile && landmarks && stage.checklist.some((c) => c.spotlight.length)
+                      ? {
+                          found: new Set(stops.map((s) => s.stepId)),
+                          focus: tourIndex !== null ? stops[tourIndex].stepId : null,
+                          onFocus: (stepId) => {
+                            const first = stepId ? stops.findIndex((s) => s.stepId === stepId) : -1;
+                            if (first >= 0) goToStop(first);
+                            else setTour((s) => ({ ...s, index: null, resumeAt: s.index }));
+                          },
+                        }
+                      : null
+                  }
                   onAnswer={(field, v) => setAnswer(stage.id, field, v)}
                   onDecide={(opt) => decide(stage.id, opt)}
                 />

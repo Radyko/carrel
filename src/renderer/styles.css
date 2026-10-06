@@ -1718,3 +1718,257 @@ textarea.hl-card-note {
   color: var(--warn-text);
   overflow-wrap: anywhere;
 }
+
+/* ---------- Spotlight and survey guide ---------- */
+
+:root {
+  /* Fades the ink and greys the paper, so the lit parts stand out without hiding the rest. */
+  --spot-dim: light-dark(rgba(206, 201, 192, 0.82), rgba(18, 18, 20, 0.76));
+  --spot-glow: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.carrel-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.carrel-spotlight svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.carrel-spotlight.fresh {
+  animation: spot-in 320ms ease-out;
+}
+.carrel-spotlight .spot-dim {
+  fill: var(--spot-dim);
+}
+/* A soft light around each part: a wide blurred halo, then a crisp hairline. */
+.carrel-spotlight .spot-glow {
+  fill: none;
+  stroke: var(--spot-glow);
+  stroke-width: 6;
+  filter: blur(6px);
+}
+.carrel-spotlight .spot-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-opacity: 0.75;
+  stroke-width: 1.5;
+}
+.carrel-spotlight.fresh .spot-glow {
+  animation: spot-glow 1.4s ease-out;
+}
+.spot-tag {
+  position: absolute;
+  transform: translateY(-55%);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 10.5px/1.6 var(--font);
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 6px var(--spot-glow);
+  white-space: nowrap;
+}
+@keyframes spot-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes spot-glow {
+  0% {
+    stroke-width: 18;
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+.pdf-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+  z-index: 5;
+}
+.pdf-overlay > * {
+  pointer-events: auto;
+}
+.tour-card {
+  width: min(460px, 100%);
+  padding: 12px 14px 12px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  animation: tour-in 220ms ease-out;
+}
+.tour-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tour-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.tour-progress {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.tour-head .btn {
+  margin-left: auto;
+}
+.tour-dot {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+.tour-dot.done {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.tour-dot.now {
+  background: var(--accent);
+}
+.tour-title {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tour-hint {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.tour-steps {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.tour-steps li {
+  margin: 1px 0;
+}
+.tour-steps li.done {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+.tour-outline {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 4px;
+  max-height: 128px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+}
+.tour-outline button {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.tour-outline button:hover {
+  background: var(--bg-hover);
+}
+.tour-outline button span:first-child {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tour-page {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+.tour-actions .spacer {
+  flex: 1;
+}
+.tour-part,
+.tour-note {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.tour-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  font: 500 12.5px var(--font);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carrel-spotlight.fresh,
+  .carrel-spotlight.fresh .spot-glow,
+  .tour-card {
+    animation: none;
+  }
+}
+.check-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.spot-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline dotted var(--line-strong);
+  text-underline-offset: 3px;
+}
+.spot-link:hover,
+.checklist li.focused .spot-link {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}
+.checklist li.focused .spot-link {
+  font-weight: 600;
+}
+.checklist li.done .spot-link {
+  color: var(--text-3);
+}
+.spot-missing {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+}

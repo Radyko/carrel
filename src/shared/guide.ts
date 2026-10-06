@@ -1,6 +1,8 @@
 // The guide describes the reading method. It is loaded from YAML and checked
 // here; the interface renders whatever a valid guide describes.
 
+import { LANDMARK_KINDS, type LandmarkKind } from './landmarks';
+
 export type FieldType = 'short' | 'long' | 'checklist' | 'terms';
 export const FIELD_TYPES: FieldType[] = ['short', 'long', 'checklist', 'terms'];
 export const STATUSES = ['to-read', 'in-progress', 'read', 'set-aside'] as const;
@@ -42,6 +44,8 @@ export interface DecisionOption {
 export interface ChecklistItem {
   id: string;
   text: string;
+  /** Parts of the PDF this step is about, lit up while you do it. */
+  spotlight: LandmarkKind[];
 }
 
 export interface PurposeOption {
@@ -210,9 +214,16 @@ function parsePass(raw: unknown, index: number): PassStage {
   const target = p.target === undefined ? {} : obj(p.target, `${where}.target`);
   const checklist = list(p.checklist, `${where}.checklist`, true).map((c, i) => {
     const w = `${where}.checklist[${i + 1}]`;
-    if (typeof c === 'string') return { id: `step-${i + 1}`, text: str(c, w) };
+    if (typeof c === 'string') return { id: `step-${i + 1}`, text: str(c, w), spotlight: [] };
     const o = obj(c, w);
-    return { id: id(o.id, `${w}.id`), text: str(o.text, `${w}.text`) };
+    const spotlight = list(o.spotlight, `${w}.spotlight`, true).map((k, j) => {
+      const kind = str(k, `${w}.spotlight[${j + 1}]`);
+      if (!(LANDMARK_KINDS as readonly string[]).includes(kind)) {
+        throw new GuideError(`${w}.spotlight[${j + 1}] should be one of ${LANDMARK_KINDS.join(', ')}.`);
+      }
+      return kind as LandmarkKind;
+    });
+    return { id: id(o.id, `${w}.id`), text: str(o.text, `${w}.text`), spotlight };
   });
   const questions = list(p.questions, `${where}.questions`, true).map((q, i) =>
     parseQuestion(q, `${where}.questions[${i + 1}]`),

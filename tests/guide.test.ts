@@ -96,3 +96,48 @@ describe('guide upgrades', () => {
     expect(loaded.guide.passes[0].questions[0].heading).toBe('Kind of paper');
   });
 });
+
+describe('checklist spotlight', () => {
+  const guideWith = (spotlight: string) => `
+version: 1
+name: Test
+purpose:
+  id: purpose
+  title: Purpose
+  heading: Purpose
+  choice:
+    label: Why?
+    options: [{ id: a, label: A }]
+  questions: []
+passes:
+  - id: pass1
+    pass: 1
+    title: Survey
+    heading: "Pass 1: Survey"
+    checklist:
+      - id: abstract
+        text: Title and abstract
+        ${spotlight}
+      - Plain step
+    questions: []
+review:
+  intervals: [7]
+`;
+
+  it('reads the parts of the PDF a step is about', async () => {
+    const g = await defaultGuide();
+    expect(g.passes[0].checklist.map((c) => c.spotlight)).toEqual([
+      ['title', 'abstract'],
+      ['introduction', 'conclusion'],
+      ['headings'],
+      ['figures'],
+      ['references'],
+    ]);
+    expect(parseGuideText(guideWith('spotlight: [abstract]')).passes[0].checklist.map((c) => c.spotlight)).toEqual([['abstract'], []]);
+  });
+
+  it('is optional, and rejects parts it does not know', () => {
+    expect(parseGuideText(guideWith('')).passes[0].checklist[0].spotlight).toEqual([]);
+    expect(() => parseGuideText(guideWith('spotlight: [appendix]'))).toThrow(/spotlight\[1\] should be one of title, abstract/);
+  });
+});

@@ -16,6 +16,7 @@ export const GUIDE_FILE = 'guide.yaml';
 const PREVIOUS_DEFAULTS = new Set([
   'ce2569ca27d91f4d8610b5cd452e2f69c2a0a1c2a5e36a70ac59a5c87f8d96d1', // 0.1.0
   '214b9ef3cca378f6d03515dc4fbca9f66d2fe7b5f7de0387db551549bf38f38d', // 0.2.0
+  '81450d9d85c844ab900ee7a56876ddadb964de9761486f4ae662adbea5d41d67', // 0.3.0 to 0.6.3
 ]);
 
 export function guideHash(text: string): string {

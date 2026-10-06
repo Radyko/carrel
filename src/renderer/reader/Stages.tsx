@@ -125,6 +125,8 @@ export function PassTab(props: {
   onCheck: (ids: string[]) => void;
   onAnswer: (field: string, value: string) => void;
   onDecide: (option: string) => void;
+  /** Checklist steps that can be shown in the PDF; null when there is no spotlight. */
+  spotlight: { found: Set<string>; focus: string | null; onFocus: (step: string | null) => void } | null;
 }) {
   const { stage, guide, meta, answers } = props;
   const checked = meta.checklist[stage.id] ?? [];
@@ -164,29 +166,53 @@ export function PassTab(props: {
       />
 
       {stage.checklist.length > 0 && (
-        <ul className="checklist">
-          {stage.checklist.map((c) => {
-            const on = checked.includes(c.id);
-            return (
-              <li key={c.id} className={on ? 'done' : ''}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    onChange={(e) =>
-                      props.onCheck(
-                        e.target.checked
-                          ? stage.checklist.map((x) => x.id).filter((x) => x === c.id || checked.includes(x))
-                          : checked.filter((x) => x !== c.id),
-                      )
-                    }
-                  />
-                  <span>{c.text}</span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <ul className="checklist">
+            {stage.checklist.map((c) => {
+              const on = checked.includes(c.id);
+              const spot = c.spotlight.length ? props.spotlight : null;
+              const focused = spot?.focus === c.id;
+              const box = (
+                <input
+                  type="checkbox"
+                  checked={on}
+                  aria-label={spot ? c.text : undefined}
+                  onChange={(e) =>
+                    props.onCheck(
+                      e.target.checked
+                        ? stage.checklist.map((x) => x.id).filter((x) => x === c.id || checked.includes(x))
+                        : checked.filter((x) => x !== c.id),
+                    )
+                  }
+                />
+              );
+              return (
+                <li key={c.id} className={`${on ? 'done' : ''}${focused ? ' focused' : ''}`}>
+                  {spot?.found.has(c.id) ? (
+                    <div className="check-row">
+                      {box}
+                      <button
+                        type="button"
+                        className="spot-link"
+                        aria-pressed={focused}
+                        title={focused ? 'Pause the guide' : 'Show me in the PDF'}
+                        onClick={() => spot.onFocus(focused ? null : c.id)}
+                      >
+                        {c.text}
+                      </button>
+                    </div>
+                  ) : (
+                    <label>
+                      {box}
+                      <span>{c.text}</span>
+                      {spot && <span className="spot-missing">not found in this PDF</span>}
+                    </label>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
 
       {stage.questions.map((q) => (

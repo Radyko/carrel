@@ -67,17 +67,26 @@ passes:
     target:
       label: 5 to 10 minutes
       minutes: 10
+    # `spotlight` names the parts of the PDF a step is about. The survey guide
+    # walks through the steps in order, lighting up their parts and dimming
+    # the rest. Parts: title, abstract, introduction, conclusion, headings,
+    # figures, references.
     checklist:
       - id: abstract
         text: Title and abstract
+        spotlight: [title, abstract]
       - id: conclusion
         text: Introduction and conclusion
+        spotlight: [introduction, conclusion]
       - id: headings
         text: Section headings
+        spotlight: [headings]
       - id: figures
         text: Figures and tables
+        spotlight: [figures]
       - id: references
         text: Skim the references
+        spotlight: [references]
     questions:
       - id: category
         heading: Category
