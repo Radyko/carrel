@@ -56,7 +56,7 @@
     0 0 0 1px light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.08));
   --radius: 7px;
   --toolbar-h: 52px;
-  /* The bar above the PDF and the pass steps beside it, one height so they line up. */
+  /* The bar above the PDF. */
   --panel-bar-h: 38px;
 }
 
@@ -760,10 +760,15 @@ button.chip:hover {
   padding-left: 84px;
 }
 /* Focus mode: just the paper and the notes. */
-.reader.focus > .toolbar,
-.reader.focus .pdf-toolbar,
-.reader.focus .tabs {
+.reader.focus > .toolbar {
   display: none;
+}
+/* In focus mode the bar above the paper keeps only Contents and Exit focus. */
+.reader.focus .pdf-toolbar > :not(.contents-toggle):not(.focus-toggle) {
+  display: none;
+}
+.reader.focus .pdf-toolbar {
+  border-bottom-color: transparent;
 }
 .notes-side[hidden] {
   display: none;
@@ -800,50 +805,29 @@ button.chip:hover {
 .reader {
   position: relative;
 }
-/* Always on screen in focus mode, so the contents and leaving are one click away.
-   It sits where the top bar was, so Exit focus lands exactly where Focus was. */
+/* Focus mode without a PDF: the button stays at the top right. */
 .focus-actions {
   position: absolute;
   top: 0;
   right: 14px;
-  /* The top bar's height without its bottom border. */
   height: calc(var(--toolbar-h) - 1px);
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 4px;
   -webkit-app-region: no-drag;
 }
-/* Focus and Exit focus are one button that changes its label, so they share a size. */
+/* Focus and Exit focus are one button in one spot; only its icon changes. */
 .focus-toggle {
-  min-width: 74px;
-  justify-content: center;
+  margin-left: auto;
 }
-.focus-actions .btn {
-  opacity: 0.85;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-/* Contents stays in the top left in focus mode, over the paper. */
-.focus-contents {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-.reader.focus .pdf-contents {
-  padding-top: 42px;
-}
-.contents-toggle {
+.contents-toggle,
+.focus-toggle {
   color: var(--text-2);
 }
-.contents-toggle.on {
+.contents-toggle.on,
+.focus-toggle.on {
   color: var(--accent-text);
   background: var(--accent-soft);
-}
-.focus-actions .btn:hover,
-.focus-actions .btn:focus-visible {
-  opacity: 1;
 }
 .focus-hint {
   position: fixed;
@@ -898,13 +882,45 @@ button.chip:hover {
   color: var(--warn-text);
   font-weight: 600;
 }
-/* The reader's top bar: library, the title, Focus. */
+/* The reader's top bar: library and the title over the paper, the steps over the notes. */
 .reader-bar {
+  gap: 0;
+  padding: 0;
+}
+.app.window-buttons .reader-bar.inset {
+  padding-left: 0;
+}
+.bar-left {
+  flex: none;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
   gap: 4px;
+  padding: 0 10px 0 14px;
+}
+.app.window-buttons .reader-bar.inset .bar-left {
+  padding-left: 84px;
+}
+.bar-left > * {
+  -webkit-app-region: no-drag;
+}
+.bar-left .spacer {
+  flex: 1;
+  -webkit-app-region: drag;
 }
 .reader-bar .title {
   min-width: 0;
   padding: 0 8px;
+}
+.bar-steps {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 14px;
 }
 .reader-body {
   flex: 1;
@@ -1136,17 +1152,15 @@ body.resizing .notes-side {
   background: var(--bg);
 }
 .tabs {
-  flex: none;
-  height: var(--panel-bar-h);
-  align-items: center;
-  background: var(--bg-subtle);
+  flex: 1;
+  min-width: 0;
   display: flex;
+  align-items: center;
   gap: 4px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--line);
+  padding: 0 0 0 12px;
   container-type: inline-size;
 }
-.notes-side.full .tabs {
+.bar-steps.full .tabs {
   justify-content: center;
 }
 /* Equal steps that share the width, so all of them always fit. */
@@ -1174,7 +1188,7 @@ body.resizing .notes-side {
   color: var(--accent-text);
   font-weight: 500;
 }
-.notes-side.full .tab {
+.bar-steps.full .tab {
   flex: 0 1 180px;
 }
 .tab-title {

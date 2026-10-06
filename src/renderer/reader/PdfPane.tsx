@@ -34,8 +34,8 @@ export interface PdfHandle {
 export type NewHighlight = Omit<Highlight, 'id'>;
 
 interface Props {
-  /** Told whether the contents list is open, so focus mode can show its own Contents button. */
-  onContentsChange?: (open: boolean) => void;
+  /** Drawn at the end of the bar above the PDF (the Focus button). */
+  toolbarEnd?: React.ReactNode;
   paperId: string;
   initialPage: number | null;
   onPageChange: (page: number) => void;
@@ -66,7 +66,7 @@ const MAX_ZOOM = 8;
 const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'Yellow', green: 'Green', blue: 'Blue', pink: 'Pink' };
 
 /** A list of sections, drawn like the sidebar button in the library. */
-export function ContentsIcon() {
+function ContentsIcon() {
   return (
     <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden>
       <rect x="0.75" y="0.75" width="14.5" height="12.5" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
@@ -360,9 +360,6 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     };
   }, [contentsOpen, pages, sections]);
 
-  const onContentsChange = props.onContentsChange;
-  useEffect(() => onContentsChange?.(contentsOpen), [contentsOpen, onContentsChange]);
-
   const toggleContents = () =>
     setContentsOpen((open) => {
       try {
@@ -506,6 +503,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
             <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
           </svg>
         </button>
+        {props.toolbarEnd}
       </div>
       {find && (
         <div className="pdf-find">
