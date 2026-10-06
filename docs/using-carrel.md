@@ -10,7 +10,9 @@ middle; click a column header to sort them. A preview on the right shows a
 paper's details and your summaries, so you can refresh your memory without
 opening it.
 
-- **Search** (⌘F) looks through titles, authors and everything you wrote.
+- **Search** (⌘F) looks through titles, authors and everything you wrote,
+  including highlights. When a paper is found by something in your notes, the
+  matching words show under its title.
 - **Hide the sidebar** with the button at the top left (or ⌃⌘S) when you just
   want the list. Click it again to bring the sidebar back.
 
@@ -52,6 +54,16 @@ Each pass has:
 Move between the tabs freely. Everything saves as you type. Summary questions
 have a button that hides the PDF while you write from memory. Show it again
 afterwards to check what you missed.
+
+- **Find in the paper**: press ⌘F (or click the magnifying glass above the
+  PDF) and type. Every match is marked; press Return for the next one and
+  ⇧Return for the previous. Escape closes it.
+- **Contents**: click **Contents** above the PDF for a list of the paper's
+  sections. Click one to jump there; the section you're reading is marked.
+  Carrel uses the PDF's own bookmarks when it has them, and otherwise finds
+  the headings itself.
+- **Focus mode** (⌘⇧F) hides the toolbars and tabs, leaving just the paper
+  and your notes. Press Escape or ⌘⇧F to leave.
 
 ## Highlights and notes
 
@@ -118,13 +130,16 @@ releases that holds the latest version number. Nothing about you is sent.
 | --- | --- |
 | ⌘O | Add a PDF |
 | ⌘N | New entry without a PDF |
-| ⌘F | Search the library |
+| ⌘F | Find in the paper (in the library: search it) |
+| ⌘G / ⌘⇧G | Next / previous match |
 | ↑ ↓, Return | Move through the list, open the selected paper |
 | ⌘⌫ | Move the selected paper to the Trash |
 | ⌘L or Escape | Back to the library |
 | ⌘1 – ⌘4 | Purpose, Pass 1, Pass 2, Pass 3 |
 | ⌘T | Start or pause the timer |
 | ⌘⇧P | Hide or show the PDF |
+| ⌘⇧C | Show or hide the contents |
+| ⌘⇧F | Focus mode |
 | ⌘= / ⌘− / ⌘0 | Zoom in, zoom out, fit to width (or pinch on the trackpad) |
 | ⌘⇧H | Highlight the selected text |
 | ⌃⌘S (Ctrl+Alt+S on Linux) | Show or hide the sidebar |

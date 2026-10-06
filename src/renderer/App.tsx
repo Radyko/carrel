@@ -454,6 +454,8 @@ export function App() {
       case 'review':
         return void startReview(dueIds);
       case 'find':
+        // In a paper with a PDF, Find searches the paper.
+        if (view.screen === 'reader' && readerRef.current?.find()) return;
         if (view.screen !== 'library') void backToLibrary();
         setTimeout(() => searchRef.current?.select(), 0);
         return;
@@ -483,7 +485,7 @@ export function App() {
       const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
       if (e.key !== 'Escape') return;
       if (typing) t.blur();
-      else void backToLibrary();
+      else if (!(view.screen === 'reader' && readerRef.current?.escape())) void backToLibrary();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
