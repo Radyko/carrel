@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppState, Appearance, UpdateStatus } from '../shared/api';
-import { ACCENTS, TONES, type Look } from '../shared/look';
+import { ACCENTS, PAGE_THEMES, TONES, type Look } from '../shared/look';
 import { Modal } from './common/Modal';
 import { applyLook } from './look';
 
@@ -56,6 +56,23 @@ export function SettingsDialog({ state, ...on }: Props) {
             ))}
           </div>
         </div>
+        <div className="settings-line">
+          <span className="label">PDF pages</span>
+          <div className="segmented" role="radiogroup" aria-label="PDF pages">
+            {PAGE_THEMES.map(([value, label]) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={state.look.pages === value}
+                className={state.look.pages === value ? 'on' : ''}
+                onClick={() => on.onLook({ pages: value })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="help">Dark pages turn the paper dark and the text light. Charts keep their colours, and photos stay as they are.</p>
         <LookPicker look={state.look} onLook={on.onLook} />
       </section>
 

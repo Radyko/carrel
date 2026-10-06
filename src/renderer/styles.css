@@ -1033,6 +1033,19 @@ body.resizing .notes-side {
   color: var(--accent-text);
   background: var(--accent-soft);
 }
+/* Dark pages (see shared/pageColors.ts): each page is drawn as usual, then
+   recoloured. Until it is, the page shows as blank dark paper instead of
+   flashing white. */
+.pdf-pane.dark-pages .pdfViewer .page {
+  background: var(--dark-paper);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.pdf-pane.dark-pages .pdfViewer .page .canvasWrapper::after {
+  display: none;
+}
+.pdf-pane.dark-pages .canvasWrapper > canvas:not(.carrel-dark) {
+  visibility: hidden;
+}
 .pdf-error {
   padding: 40px;
   color: var(--text-2);
@@ -1514,6 +1527,12 @@ body.resizing .notes-side {
   mix-blend-mode: multiply;
   /* On the layer, not each mark, so overlapping marks don't darken. */
   opacity: 0.55;
+}
+/* On a dark page, multiplying would hide the colour; overlay tints the dark
+   paper and keeps the light text light. */
+.dark-pages .carrel-highlights {
+  mix-blend-mode: overlay;
+  opacity: 0.85;
 }
 .carrel-highlights .hl {
   position: absolute;

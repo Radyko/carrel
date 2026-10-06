@@ -28,6 +28,9 @@ interface Props {
   onEdit: () => void;
   onError: (err: unknown) => void;
   onChanged: () => void;
+  /** Draw the PDF's pages dark, in the given background tone. */
+  darkPages: boolean;
+  tone: string;
 }
 
 type SaveState = 'saved' | 'pending' | 'saving' | 'error';
@@ -475,6 +478,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                   setActive({ id: added[0].id, focus: true });
                 }}
                 activeHighlightId={active?.id ?? null}
+                darkPages={props.darkPages}
+                tone={props.tone}
                 onActivateHighlight={(id) => setActive(id ? { id, focus: false } : null)}
               />
             </div>

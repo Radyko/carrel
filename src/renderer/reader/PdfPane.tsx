@@ -11,6 +11,8 @@ import {
 import type { Section } from '../../shared/pdfSections';
 import { api, errorText } from '../api';
 import { loadPdfJs, loadPdfViewer, pdfSections } from '../pdf';
+import { darkPageColors } from '../../shared/pageColors';
+import { darkenDrawnPage } from './darkPages';
 
 export interface PdfHandle {
   zoomIn(): void;
@@ -40,6 +42,9 @@ interface Props {
   /** The highlight whose note is open, if any. */
   activeHighlightId: string | null;
   onActivateHighlight: (id: string | null) => void;
+  /** Draw the pages dark, in the given background tone. */
+  darkPages: boolean;
+  tone: string;
 }
 
 /** The colour picker shown under a fresh text selection. */
@@ -85,6 +90,8 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   const [sections, setSections] = useState<Section[] | null>(null);
   /** The page and height (in PDF units) at the top of the view. */
   const [viewTop, setViewTop] = useState({ page: 1, top: Infinity });
+  const darkRef = useRef<string | null>(null);
+  darkRef.current = props.darkPages ? props.tone : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -109,13 +116,20 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
           linkService,
           findController,
           textLayerMode: 1,
+          // Have PDF.js note where the pictures are, so dark pages can leave photos as they are.
+          // The size is so large that it adds nothing else (it is meant for right-clicking images).
+          imagesRightClickMinSize: 1e9,
         });
         eventBusRef.current = eventBus;
         linkService.setViewer(viewer);
         viewerRef.current = viewer;
         // pdf.js redraws pages as you scroll and zoom; draw highlights onto each one.
-        eventBus.on('pagerendered', (e: { pageNumber: number; source: { div: HTMLDivElement } }) =>
-          drawHighlights(e.source.div, e.pageNumber, highlightsRef.current, activeRef.current),
+        eventBus.on(
+          'pagerendered',
+          (e: { pageNumber: number; source: { div: HTMLDivElement; canvas?: HTMLCanvasElement }; error?: unknown }) => {
+            if (darkRef.current && !e.error) darkenDrawnPage(e.source, darkRef.current);
+            drawHighlights(e.source.div, e.pageNumber, highlightsRef.current, activeRef.current);
+          },
         );
         eventBus.on('pagesinit', () => {
           if (!viewer) return;
@@ -178,6 +192,15 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Draw the pages again when they turn dark or light, or the tone changes.
+  const pageTheme = darkRef.current;
+  const shownTheme = useRef(pageTheme);
+  useEffect(() => {
+    if (shownTheme.current === pageTheme) return;
+    shownTheme.current = pageTheme;
+    viewerRef.current?.refresh();
+  }, [pageTheme]);
 
   // Redraw when highlights change.
   useEffect(() => {
@@ -253,7 +276,14 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         return;
       }
       const pageDiv = (e.target as HTMLElement).closest<HTMLDivElement>('.page[data-page-number]');
-      if (!pageDiv) return;
+      if (!pageDiv) {
+        // A click in the grey space around the pages closes an open note (but not the scrollbar).
+        const scroll = containerRef.current!;
+        const box = scroll.getBoundingClientRect();
+        const onBar = e.clientX - box.left >= scroll.clientWidth || e.clientY - box.top >= scroll.clientHeight;
+        if (activeRef.current && !onBar) props.onActivateHighlight(null);
+        return;
+      }
       const box = pageDiv.getBoundingClientRect();
       const fx = (e.clientX - box.left) / box.width;
       const fy = (e.clientY - box.top) / box.height;
@@ -375,7 +405,10 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   }));
 
   return (
-    <div className="pdf-pane">
+    <div
+      className={`pdf-pane${props.darkPages ? ' dark-pages' : ''}`}
+      style={props.darkPages ? ({ '--dark-paper': darkPageColors(props.tone).paper } as React.CSSProperties) : undefined}
+    >
       <div className="pdf-toolbar">
         <button
           className={`btn quiet small${contentsOpen ? ' on' : ''}`}

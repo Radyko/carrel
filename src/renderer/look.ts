@@ -1,4 +1,5 @@
-import { DEFAULT_ACCENT, DEFAULT_TONE, normalizeLook, type Look } from '../shared/look';
+import { useEffect, useState } from 'react';
+import { normalizeLook, type Look } from '../shared/look';
 
 const KEY = 'carrel.look';
 
@@ -21,8 +22,24 @@ export function rememberLook(look: Look): void {
 export function applyRememberedLook(): void {
   try {
     const saved = localStorage.getItem(KEY);
-    applyLook(saved ? normalizeLook(JSON.parse(saved)) : { tone: DEFAULT_TONE, accent: DEFAULT_ACCENT });
+    applyLook(normalizeLook(saved ? JSON.parse(saved) : undefined));
   } catch {
-    applyLook({ tone: DEFAULT_TONE, accent: DEFAULT_ACCENT });
+    applyLook(normalizeLook(undefined));
   }
+}
+
+/**
+ * Whether Carrel is in dark mode right now. The Mode setting decides what
+ * prefers-color-scheme reports, so this follows it as well as the system.
+ */
+export function useDarkMode(): boolean {
+  const [dark, setDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches);
+  useEffect(() => {
+    const query = matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => setDark(query.matches);
+    onChange();
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+  return dark;
 }

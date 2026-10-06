@@ -46,9 +46,33 @@ export const DEFAULT_ACCENT = '#00356b';
 /** The default before 0.5. People who never picked an accent move to the new default. */
 export const OLD_DEFAULT_ACCENT = '#2e7d5b';
 
+/**
+ * How PDF pages look: dark pages whenever Carrel is in dark mode, or always
+ * light, or always dark, whatever the mode.
+ */
+export type PageTheme = 'match' | 'light' | 'dark';
+
+export const PAGE_THEMES: [PageTheme, string][] = [
+  ['match', 'Match mode'],
+  ['light', 'Light'],
+  ['dark', 'Dark'],
+];
+
+export const DEFAULT_PAGES: PageTheme = 'match';
+
 export interface Look {
   tone: string;
   accent: string;
+  pages: PageTheme;
+}
+
+export function isPageTheme(value: unknown): value is PageTheme {
+  return value === 'match' || value === 'light' || value === 'dark';
+}
+
+/** Whether pages are drawn dark, given the look and whether Carrel is in dark mode. */
+export function pagesAreDark(pages: PageTheme, darkMode: boolean): boolean {
+  return pages === 'dark' || (pages === 'match' && darkMode);
 }
 
 export function isTone(id: unknown): id is string {
@@ -63,6 +87,7 @@ export function normalizeLook(data: Partial<Look> | undefined): Look {
   return {
     tone: isTone(data?.tone) ? data.tone : DEFAULT_TONE,
     accent: isColor(data?.accent) ? data.accent.toLowerCase() : DEFAULT_ACCENT,
+    pages: isPageTheme(data?.pages) ? data.pages : DEFAULT_PAGES,
   };
 }
 
@@ -80,7 +105,7 @@ export function savedLook(
   const toneChosen = chosen.tone === true || (isTone(data?.tone) && look.tone !== OLD_DEFAULT_TONE);
   const accentChosen = chosen.accent === true || (isColor(data?.accent) && look.accent !== OLD_DEFAULT_ACCENT);
   return {
-    look: { tone: toneChosen ? look.tone : DEFAULT_TONE, accent: accentChosen ? look.accent : DEFAULT_ACCENT },
+    look: { tone: toneChosen ? look.tone : DEFAULT_TONE, accent: accentChosen ? look.accent : DEFAULT_ACCENT, pages: look.pages },
     toneChosen,
     accentChosen,
   };
