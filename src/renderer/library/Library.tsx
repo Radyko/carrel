@@ -64,7 +64,7 @@ const COLUMNS: { key: SortKey; label: string; width: string; className?: string 
   { key: 'author', label: 'First author', width: '15%' },
   { key: 'year', label: 'Year', width: '56px', className: 'num' },
   { key: 'topics', label: 'Topics', width: '14%' },
-  { key: 'pass', label: 'Pass', width: '54px' },
+  { key: 'pass', label: 'Pass', width: '64px' },
   { key: 'lastWorked', label: 'Last worked', width: '108px' },
 ];
 
@@ -75,16 +75,9 @@ const OPTIONAL: Partial<Record<SortKey, (p: PaperSummary) => boolean>> = {
   topics: (p) => p.meta.topics.length > 0,
 };
 
-function PassDots({ pass, total }: { pass: number; total: number }) {
-  return (
-    <span className="dots" title={pass ? `Reached pass ${pass}` : 'Not started'} aria-label={pass ? `Pass ${pass}` : 'Not started'}>
-      {Array.from({ length: total }, (_, i) => (
-        <span key={i} className={i < pass ? '' : 'off'}>
-          ●
-        </span>
-      ))}
-    </span>
-  );
+function PassLabel({ pass, total }: { pass: number; total: number }) {
+  if (!pass) return <span className="muted" title="Not started" aria-label="Not started">–</span>;
+  return <span title={`Reached pass ${pass} of ${total}`}>Pass {pass}</span>;
 }
 
 export function Library(props: Props) {
@@ -385,7 +378,7 @@ function Cell({ column, paper: p, passes, search }: { column: SortKey; paper: Pa
     case 'pass':
       return (
         <td>
-          <PassDots pass={p.meta.furthestPass} total={passes} />
+          <PassLabel pass={p.meta.furthestPass} total={passes} />
         </td>
       );
     case 'lastWorked':

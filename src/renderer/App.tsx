@@ -588,7 +588,6 @@ export function App() {
           isMac={isMac}
           today={today}
           onBack={backToLibrary}
-          onEdit={() => editPaper(view.id)}
           onError={report}
           onChanged={refresh}
           darkPages={pagesAreDark(

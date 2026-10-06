@@ -25,7 +25,6 @@ interface Props {
   isMac: boolean;
   today: string;
   onBack: () => void;
-  onEdit: () => void;
   onError: (err: unknown) => void;
   onChanged: () => void;
   /** Draw the PDF's pages dark, in the given background tone. */
@@ -75,6 +74,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const [focus, setFocus] = useState(false);
   const [focusHint, setFocusHint] = useState(false);
   const pdfRef = useRef<PdfHandle>(null);
+  const [barStart, setBarStart] = useState<HTMLSpanElement | null>(null);
+  const [barEnd, setBarEnd] = useState<HTMLSpanElement | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -456,9 +457,10 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const purposeField = purposeQuestionsField(guide);
   const purposeQuestions = purposeField ? doc.answers[guide.purpose.id]?.[purposeField.id] ?? '' : '';
   const stage = stages.find((s) => s.id === stageId) ?? stages[0];
+  // Saving happens as you type, so it only shows when it is slow or fails.
   const saveLabel: Record<SaveState, string> = {
-    saved: 'Saved',
-    pending: 'Editing',
+    saved: '',
+    pending: '',
     saving: 'Saving…',
     error: 'Not saved',
   };
@@ -476,31 +478,30 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
           Focus mode. Click Exit focus, or press Esc, to leave.
         </div>
       )}
-      <div className={`toolbar${props.isMac ? ' inset' : ''}`}>
+      <div className={`toolbar reader-bar${props.isMac ? ' inset' : ''}`}>
         <button className="btn quiet" onClick={props.onBack} title="Back to the library">
           ‹ Library
         </button>
+        {/* The PDF's own controls (contents, page, zoom, find) are drawn into these two spots. */}
+        <span className="pdf-controls" ref={setBarStart} />
         <span className="title" title={doc.meta.title}>
           {doc.meta.title}
         </span>
-        <span className="spacer" />
+        <span className="pdf-controls" ref={setBarEnd} />
         <span className={`save-state ${saveState}`} aria-live="polite">
           {saveLabel[saveState]}
         </span>
+        {doc.pdfFile && pdfHidden && (
+          <button className="btn quiet small" onClick={() => setPdfHidden(false)}>
+            Show PDF
+          </button>
+        )}
         <button
-          className="btn quiet small"
+          className="btn small"
           onClick={toggleFocus}
           title={`Just the paper, nothing else (${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}
         >
           Focus
-        </button>
-        {doc.pdfFile && (
-          <button className="btn quiet small" onClick={() => setPdfHidden((h) => !h)}>
-            {pdfHidden ? 'Show PDF' : 'Hide PDF'}
-          </button>
-        )}
-        <button className="btn quiet small" onClick={props.onEdit}>
-          Details…
         </button>
       </div>
 
@@ -512,6 +513,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
             <div className="pdf-side" ref={pdfSideRef} style={{ width: paperOnly ? '100%' : `${split * 100}%` }}>
               <PdfPane
                 ref={pdfRef}
+                toolbar={{ start: barStart, end: barEnd }}
                 paperId={doc.id}
                 initialPage={doc.meta.lastPage}
                 onPageChange={onPageChange}
@@ -549,9 +551,10 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                   aria-selected={s.id === stage.id}
                   className={`tab${s.id === stage.id ? ' active' : ''}`}
                   onClick={() => goTo(s.id)}
+                  title={s.kind === 'pass' ? `Pass ${s.pass}: ${s.title}` : s.title}
                 >
-                  {s.kind === 'pass' ? <span className="tab-num">Pass {s.pass}</span> : null}
-                  <span>{s.title}</span>
+                  {s.kind === 'pass' ? <span className="tab-num">{s.pass}</span> : null}
+                  <span className="tab-title">{s.title}</span>
                   {decided && <span className="tab-done" aria-label="done">✓</span>}
                   {running?.stage === s.id && <span className="tab-running" aria-label="timer running" />}
                 </button>

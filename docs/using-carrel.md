@@ -42,7 +42,10 @@ Papers you add while a collection is selected go into it.
 ## Reading
 
 The reader shows the PDF on the left and your notes on the right. Drag the
-line between them to resize.
+line between them to resize. One bar across the top holds everything else:
+**Library** to go back, **Contents**, the page number, zoom, Find and
+**Focus**. To change a paper's title or authors, use **Edit details…** in the
+library.
 
 Each pass has:
 
@@ -51,14 +54,15 @@ Each pass has:
 - a short checklist and a few questions,
 - a choice at the end: keep going, come back later, or stop here.
 
-Move between the tabs freely. Everything saves as you type. Summary questions
-have a button that hides the PDF while you write from memory. Show it again
-afterwards to check what you missed.
+Move between Purpose and the passes freely with the steps above your notes.
+Everything saves as you type; Carrel only says something if saving is slow or
+fails. Summary questions have a button that hides the PDF while you write from
+memory. Click **Show PDF** at the top afterwards to check what you missed.
 
-- **Find in the paper**: press ⌘F (or click the magnifying glass above the
-  PDF) and type. Every match is marked; press Return for the next one and
+- **Find in the paper**: press ⌘F (or click the magnifying glass in the top
+  bar) and type. Every match is marked; press Return for the next one and
   ⇧Return for the previous. Escape closes it.
-- **Contents**: click **Contents** above the PDF for a list of the paper's
+- **Contents**: click **Contents** in the top bar for a list of the paper's
   sections. Click one to jump there; the section you're reading is marked.
   Carrel uses the PDF's own bookmarks when it has them, and otherwise finds
   the headings itself.
