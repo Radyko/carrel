@@ -313,6 +313,22 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
       return !on;
     });
   }, []);
+  // In focus mode a highlight's note floats over the paper, level with the highlight.
+  const pdfSideRef = useRef<HTMLDivElement>(null);
+  const [cardAt, setCardAt] = useState<{ top: number } | { bottom: number }>({ top: 12 });
+  const activeId = active?.id ?? null;
+  useEffect(() => {
+    const side = pdfSideRef.current;
+    if (!focus || !activeId || !side) return;
+    const mark = side.querySelector(`.hl[data-id="${CSS.escape(activeId)}"]`)?.getBoundingClientRect();
+    const box = side.getBoundingClientRect();
+    if (!mark) return setCardAt({ top: 12 });
+    // Below the highlight, or above it when it is near the bottom of the window.
+    const below = mark.bottom - box.top + 8;
+    if (below + 240 <= box.height) setCardAt({ top: Math.max(12, below) });
+    else setCardAt({ bottom: Math.max(12, box.bottom - mark.top + 8) });
+  }, [focus, activeId]);
+
   useEffect(() => {
     if (!focusHint) return;
     const t = window.setTimeout(() => setFocusHint(false), 2600);
@@ -413,6 +429,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   if (!doc) return <div className="loading">Opening…</div>;
 
   const showPdf = !!doc.pdfFile && !pdfHidden;
+  // Focus mode with the PDF showing is just the paper; highlight notes float over it.
+  const paperOnly = focus && showPdf;
   const activeHighlight = active ? highlights.find((h) => h.id === active.id) : undefined;
   const editHighlight = (id: string, change: Partial<Highlight>) =>
     changeHighlights((items) => items.map((h) => (h.id === id ? { ...h, ...change } : h)));
@@ -420,6 +438,21 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
     if (pdfHidden) setPdfHidden(false);
     setTimeout(() => pdfRef.current?.revealHighlight(h), pdfHidden ? 400 : 0);
   };
+  const card = activeHighlight && (
+    <HighlightCard
+      key={activeHighlight.id}
+      highlight={activeHighlight}
+      focusNote={!!active?.focus}
+      onNote={(note) => editHighlight(activeHighlight.id, { note })}
+      onColor={(color) => editHighlight(activeHighlight.id, { color })}
+      onShow={() => showHighlight(activeHighlight)}
+      onRemove={() => {
+        changeHighlights((items) => items.filter((h) => h.id !== activeHighlight.id));
+        setActive(null);
+      }}
+      onClose={() => setActive(null)}
+    />
+  );
   const purposeField = purposeQuestionsField(guide);
   const purposeQuestions = purposeField ? doc.answers[guide.purpose.id]?.[purposeField.id] ?? '' : '';
   const stage = stages.find((s) => s.id === stageId) ?? stages[0];
@@ -464,7 +497,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
       <div className="reader-body" ref={bodyRef}>
         {showPdf && (
           <>
-            <div className="pdf-side" style={{ width: `${split * 100}%` }}>
+            <div className="pdf-side" ref={pdfSideRef} style={{ width: paperOnly ? '100%' : `${split * 100}%` }}>
               <PdfPane
                 ref={pdfRef}
                 paperId={doc.id}
@@ -482,11 +515,16 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                 tone={props.tone}
                 onActivateHighlight={(id) => setActive(id ? { id, focus: false } : null)}
               />
+              {paperOnly && card && (
+                <div className="hl-float" style={cardAt}>
+                  {card}
+                </div>
+              )}
             </div>
-            <div className="divider" onPointerDown={startDrag} role="separator" aria-orientation="vertical" />
+            {!paperOnly && <div className="divider" onPointerDown={startDrag} role="separator" aria-orientation="vertical" />}
           </>
         )}
-        <div className={`notes-side${showPdf ? '' : ' full'}`}>
+        <div className={`notes-side${showPdf ? '' : ' full'}`} hidden={paperOnly}>
           <nav className="tabs" role="tablist">
             {stages.map((s) => {
               // A tick means the stage is finished: a purpose chosen, or a decision that ends the pass.
@@ -508,21 +546,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
               );
             })}
           </nav>
-          {activeHighlight && (
-            <HighlightCard
-              key={activeHighlight.id}
-              highlight={activeHighlight}
-              focusNote={!!active?.focus}
-              onNote={(note) => editHighlight(activeHighlight.id, { note })}
-              onColor={(color) => editHighlight(activeHighlight.id, { color })}
-              onShow={() => showHighlight(activeHighlight)}
-              onRemove={() => {
-                changeHighlights((items) => items.filter((h) => h.id !== activeHighlight.id));
-                setActive(null);
-              }}
-              onClose={() => setActive(null)}
-            />
-          )}
+          {!paperOnly && card}
           <div className="notes-scroll" ref={scrollRef}>
             <fieldset className="notes-content" disabled={!!doc.error}>
               {stage.kind === 'purpose' ? (
