@@ -39,6 +39,9 @@ interface Props {
 /** The colour picker shown under a fresh text selection. */
 type Popover = { x: number; y: number; parts: NewHighlight[] };
 
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 8;
+
 const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'Yellow', green: 'Green', blue: 'Blue', pink: 'Pink' };
 
 export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref) {
@@ -135,6 +138,41 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Pinch on a trackpad (or Ctrl + scroll) zooms around the pointer. Pages stretch at once
+  // and are redrawn sharply once the fingers rest.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    let target = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const viewer = viewerRef.current;
+      if (!viewer || !viewer.pagesCount) return;
+      // Keep tiny steps that pdf.js would round away, so slow pinches still move.
+      if (Math.abs(target - viewer.currentScale) > 0.01) target = viewer.currentScale;
+      const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
+      target = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, target * Math.exp(-Math.max(-25, Math.min(25, delta)) / 100)));
+      // Note the spot under the pointer, so it can stay exactly there.
+      const pageDiv = pageAt(el, e.clientX, e.clientY);
+      const before = pageDiv?.getBoundingClientRect();
+      viewer.updateScale({
+        scaleFactor: target / viewer.currentScale,
+        origin: [e.clientX, e.clientY],
+        drawingDelay: 250,
+      });
+      if (pageDiv && before && before.width) {
+        const after = pageDiv.getBoundingClientRect();
+        const k = after.width / before.width;
+        el.scrollLeft += after.left - (e.clientX - (e.clientX - before.left) * k);
+        el.scrollTop += after.top - (e.clientY - (e.clientY - before.top) * k);
+      }
+      setPopover(null);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [error]);
 
   // Redraw when highlights change.
   useEffect(() => {
@@ -320,6 +358,21 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
     </div>
   );
 });
+
+/** The page at a point on screen, or the nearest one. */
+function pageAt(container: HTMLElement, x: number, y: number): HTMLDivElement | null {
+  const hit = document.elementFromPoint(x, y)?.closest<HTMLDivElement>('.page[data-page-number]');
+  if (hit && container.contains(hit)) return hit;
+  let best: HTMLDivElement | null = null;
+  let bestGap = Infinity;
+  for (const div of container.querySelectorAll<HTMLDivElement>('.page[data-page-number]')) {
+    const box = div.getBoundingClientRect();
+    const gap = y < box.top ? box.top - y : y > box.bottom ? y - box.bottom : 0;
+    if (gap < bestGap) [best, bestGap] = [div, gap];
+    if (!gap) break;
+  }
+  return best;
+}
 
 /** Draws a page's highlights in a layer between the page image and its text. */
 function drawHighlights(pageDiv: HTMLDivElement, page: number, highlights: Highlight[], activeId: string | null): void {
