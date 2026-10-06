@@ -21,6 +21,22 @@ export function HighlightCard({ highlight: h, focusNote, onNote, onColor, onShow
     if (focusNote) ref.current?.querySelector('textarea')?.focus();
   }, [h.id, focusNote]);
 
+  // Close when you click anywhere else, like a dialog. Clicks in the PDF and on
+  // the highlights list are left alone: those open another highlight or close
+  // this one themselves. The note is saved as you type, so nothing is lost.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Element;
+      if (ref.current?.contains(target)) return;
+      if (target.closest?.('.pdf-scroll, .hl-popover, .hl-item, .modal-back')) return;
+      onCloseRef.current();
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, []);
+
   return (
     <section className={`hl-card hl-edge-${h.color}`} ref={ref} aria-label="Highlight note">
       <div className="hl-card-head">

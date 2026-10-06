@@ -77,6 +77,11 @@ Carrel just shows how many are due.
 Open Settings from the bottom of the sidebar (or ⌘,).
 
 - **Mode**: Light, Dark, or match your computer.
+- **PDF pages**: Match mode (the default) shows dark pages when Carrel is in
+  dark mode and light pages in light mode. Light or Dark keeps the pages that
+  way whatever the mode. On dark pages the paper turns dark and the text
+  light; coloured lines and charts keep their colours, and photos are left as
+  they are, just slightly dimmed.
 - **Background**: Linen (the default) and Sepia are warm, easier on the eyes
   in long sessions, and tint the PDF pages too. Paper is plain white, Mist is
   cool, and Sage is a soft green.

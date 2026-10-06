@@ -61,6 +61,8 @@ In **Settings → Look**:
   deep, quiet colours like slate, old gold and oxblood. Want something louder?
   The rainbow dot opens a picker for any colour.
 - Use **Light**, **Dark**, or match your computer.
+- Read on **dark pages** when Carrel is dark, or pick light or dark pages
+  whatever the mode. Charts keep their colours and photos stay as they are.
 
 ## Your notes
 
