@@ -7,7 +7,8 @@ import { isDue } from '../shared/review';
 import { api, errorText } from './api';
 import { Library, type LibraryUi, type Naming } from './library/Library';
 import { PaperForm } from './library/PaperForm';
-import { applyLook, rememberLook } from './look';
+import { applyLook, rememberLook, useDarkMode } from './look';
+import { pagesAreDark } from '../shared/look';
 import { pdfTitle } from './pdf';
 import { Reader, type ReaderHandle } from './reader/Reader';
 import { ReviewScreen } from './review/ReviewScreen';
@@ -120,14 +121,16 @@ export function App() {
     else delete document.documentElement.dataset.theme;
   }, [state?.appearance]);
 
-  // The background tone and accent colour from Settings.
+  // The background tone, accent colour and page colour from Settings.
   const tone = state?.look.tone;
   const accent = state?.look.accent;
+  const pages = state?.look.pages;
   useEffect(() => {
-    if (!tone || !accent) return;
-    applyLook({ tone, accent });
-    rememberLook({ tone, accent });
-  }, [tone, accent]);
+    if (!tone || !accent || !pages) return;
+    applyLook({ tone, accent, pages });
+    rememberLook({ tone, accent, pages });
+  }, [tone, accent, pages]);
+  const darkMode = useDarkMode();
 
   // Look for a new version at start, every 15 minutes while Carrel is open,
   // and at the big moments: coming back to the window, opening the sidebar,
@@ -586,6 +589,11 @@ export function App() {
           onEdit={() => editPaper(view.id)}
           onError={report}
           onChanged={refresh}
+          darkPages={pagesAreDark(
+            state.look.pages,
+            state.appearance === 'dark' || (state.appearance === 'system' && darkMode),
+          )}
+          tone={state.look.tone}
         />
       )}
       {view.screen === 'review' && (
