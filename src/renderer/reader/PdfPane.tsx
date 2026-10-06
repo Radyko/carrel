@@ -210,7 +210,14 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         return;
       }
       const pageDiv = (e.target as HTMLElement).closest<HTMLDivElement>('.page[data-page-number]');
-      if (!pageDiv) return;
+      if (!pageDiv) {
+        // A click in the grey space around the pages closes an open note (but not the scrollbar).
+        const scroll = containerRef.current!;
+        const box = scroll.getBoundingClientRect();
+        const onBar = e.clientX - box.left >= scroll.clientWidth || e.clientY - box.top >= scroll.clientHeight;
+        if (activeRef.current && !onBar) props.onActivateHighlight(null);
+        return;
+      }
       const box = pageDiv.getBoundingClientRect();
       const fx = (e.clientX - box.left) / box.width;
       const fy = (e.clientY - box.top) / box.height;
