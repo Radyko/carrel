@@ -800,15 +800,24 @@ button.chip:hover {
 .reader {
   position: relative;
 }
-/* Always on screen in focus mode, so the contents and leaving are one click away. */
+/* Always on screen in focus mode, so the contents and leaving are one click away.
+   It sits where the top bar was, so Exit focus lands exactly where Focus was. */
 .focus-actions {
   position: absolute;
-  top: 8px;
-  right: 24px;
+  top: 0;
+  right: 14px;
+  /* The top bar's height without its bottom border. */
+  height: calc(var(--toolbar-h) - 1px);
   z-index: 40;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
   -webkit-app-region: no-drag;
+}
+/* Focus and Exit focus are one button that changes its label, so they share a size. */
+.focus-toggle {
+  min-width: 74px;
+  justify-content: center;
 }
 .focus-actions .btn {
   opacity: 0.85;

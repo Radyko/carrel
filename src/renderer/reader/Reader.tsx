@@ -471,7 +471,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         <div className="focus-actions">
           {paperOnly && (
             <button
-              className={`btn${contentsOpen ? ' on' : ''}`}
+              className={`btn small${contentsOpen ? ' on' : ''}`}
               onClick={() => pdfRef.current?.toggleContents()}
               title="Show or hide the paper's sections"
               aria-pressed={contentsOpen}
@@ -479,7 +479,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
               Contents
             </button>
           )}
-          <button className="btn" onClick={toggleFocus} title={`Leave focus mode (Esc or ${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}>
+          <button className="btn small focus-toggle" onClick={toggleFocus} title={`Leave focus mode (Esc or ${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}>
             Exit focus
           </button>
         </div>
@@ -506,7 +506,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
           </button>
         )}
         <button
-          className="btn small"
+          className="btn small focus-toggle"
           onClick={toggleFocus}
           title={`Just the paper, nothing else (${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}
         >
