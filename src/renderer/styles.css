@@ -810,6 +810,23 @@ button.chip:hover {
 .app:not(.window-buttons) .focus-strip {
   display: none;
 }
+.reader {
+  position: relative;
+}
+/* Always on screen in focus mode, so leaving is one click. */
+.focus-exit {
+  position: absolute;
+  top: 8px;
+  right: 24px;
+  z-index: 40;
+  opacity: 0.85;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  -webkit-app-region: no-drag;
+}
+.focus-exit:hover,
+.focus-exit:focus-visible {
+  opacity: 1;
+}
 .focus-hint {
   position: fixed;
   top: 18px;

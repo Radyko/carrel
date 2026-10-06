@@ -62,9 +62,10 @@ afterwards to check what you missed.
   sections. Click one to jump there; the section you're reading is marked.
   Carrel uses the PDF's own bookmarks when it has them, and otherwise finds
   the headings itself.
-- **Focus mode** (⌘⇧F) is just the paper, with no guide beside it. Highlight
-  as usual: the note on a highlight opens over the page, next to it. Press
-  Escape or ⌘⇧F to leave.
+- **Focus**: click **Focus** at the top of the reader (or press ⌘⇧F) for
+  just the paper, with no guide beside it. Highlight as usual: the note on a
+  highlight opens over the page, next to it. Click **Exit focus** at the top
+  right (or press Escape) to leave.
 
 ## Highlights and notes
 
