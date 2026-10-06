@@ -53,6 +53,25 @@ Move between the tabs freely. Everything saves as you type. Summary questions
 have a button that hides the PDF while you write from memory. Show it again
 afterwards to check what you missed.
 
+### Spotlight
+
+On the first pass, Carrel finds the parts a survey asks you to skim (the
+title, abstract, introduction, conclusion, section headings, figures and
+references) and dims the rest of the PDF, so the parts that matter stand out.
+
+- Click a step in the checklist to show only its parts. The PDF jumps to the
+  first one, and a bar at the top of the PDF reads, say, "2 of 5 ·
+  Introduction and conclusion".
+- Press **›** to tick the step and move to the next, **‹** to go back.
+  Escape shows all the parts again.
+- **Spotlight** in the PDF toolbar turns the dimming off and on.
+
+Carrel uses the PDF's bookmarks when it has them, and otherwise reads the page
+for headings and captions. Every PDF is laid out differently, so a step it
+can't find says "not found in this PDF", and a scanned PDF (a picture of the
+pages, with no text in it) has no spotlight at all. Everything is worked out
+on your computer; nothing is sent anywhere.
+
 ## Highlights and notes
 
 1. Select text in the PDF.
@@ -116,7 +135,7 @@ releases that holds the latest version number. Nothing about you is sent.
 | ⌘F | Search the library |
 | ↑ ↓, Return | Move through the list, open the selected paper |
 | ⌘⌫ | Move the selected paper to the Trash |
-| ⌘L or Escape | Back to the library |
+| ⌘L or Escape | Back to the library (Escape first leaves a spotlit step) |
 | ⌘1 – ⌘4 | Purpose, Pass 1, Pass 2, Pass 3 |
 | ⌘T | Start or pause the timer |
 | ⌘⇧P | Hide or show the PDF |

@@ -5,9 +5,10 @@ import type { PaperDoc, PaperMeta, PaperPatch } from '../../shared/paper';
 import { initialStage, progressFromDecision, progressFromEdit } from '../../shared/progress';
 import { api } from '../api';
 import { HighlightCard } from './HighlightCard';
-import { PdfPane, type PdfHandle } from './PdfPane';
+import { PdfPane, type PdfHandle, type Spotlight } from './PdfPane';
 import { PassTab, PurposeTab, SharedNotes } from './Stages';
 import { formatHighlights, newHighlightId, parseHighlights, type Highlight } from '../../shared/highlights';
+import type { Landmarks, Region } from '../../shared/landmarks';
 
 export interface ReaderHandle {
   flush(): Promise<void>;
@@ -47,6 +48,16 @@ function isEmpty(p: PaperPatch): boolean {
   return !p.meta && !p.answers && p.notes === undefined && p.highlights === undefined;
 }
 
+const SPOTLIGHT_KEY = 'carrel.spotlight';
+
+function readSpotlightOn(): boolean {
+  try {
+    return localStorage.getItem(SPOTLIGHT_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
 function readSplit(): number {
   try {
     const v = Number(localStorage.getItem('carrel.split'));
@@ -66,6 +77,10 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const [pdfHidden, setPdfHidden] = useState(false);
   const [split, setSplit] = useState(readSplit);
   const pdfRef = useRef<PdfHandle>(null);
+  /** Where the paper's parts are, once found; and the checklist step being shown. */
+  const [landmarks, setLandmarks] = useState<Landmarks | null>(null);
+  const [spotlightOn, setSpotlightOn] = useState(readSpotlightOn);
+  const [focusStep, setFocusStep] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -77,6 +92,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
       (d) => {
         if (cancelled) return;
         setDoc(d);
+        setLandmarks(null);
+        setFocusStep(null);
         setStageId(initialStage(d.meta, guide));
       },
       (err) => {
@@ -277,6 +294,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const stages = allStages(guide);
   const goTo = useCallback((stage: string) => {
     setStageId(stage);
+    setFocusStep(null);
     scrollRef.current?.scrollTo({ top: 0 });
   }, []);
 
@@ -367,6 +385,60 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const highlightsText = doc?.highlights ?? '';
   const highlights = useMemo(() => parseHighlights(highlightsText).items, [highlightsText]);
 
+  // ----- Spotlight -----
+  // The current pass's checklist steps, each with the parts of the PDF it is about.
+  const current = stages.find((s) => s.id === stageId) ?? stages[0];
+  const spotSteps = useMemo(() => {
+    if (!landmarks || current.kind !== 'pass') return [];
+    return current.checklist
+      .filter((c) => c.spotlight.length)
+      .map((c) => ({ id: c.id, text: c.text, regions: c.spotlight.flatMap((k) => landmarks[k]) }));
+  }, [landmarks, current]);
+  const spotFound = useMemo(() => spotSteps.filter((s) => s.regions.length), [spotSteps]);
+  const pdfShown = !!doc?.pdfFile && !pdfHidden;
+  const spotActive = pdfShown && spotlightOn && spotFound.length > 0;
+  const focusIndex = spotActive && focusStep ? spotFound.findIndex((s) => s.id === focusStep) : -1;
+  const spotlight = useMemo<Spotlight | null>(() => {
+    if (!spotActive) return null;
+    const regions: Region[] = spotFound.flatMap((s) => s.regions);
+    return { regions, focus: focusIndex >= 0 ? spotFound[focusIndex].regions : null };
+  }, [spotActive, spotFound, focusIndex]);
+
+  const setSpotlight = (on: boolean) => {
+    setSpotlightOn(on);
+    if (!on) setFocusStep(null);
+    try {
+      localStorage.setItem(SPOTLIGHT_KEY, on ? 'on' : 'off');
+    } catch {
+      /* only a convenience */
+    }
+  };
+  /** Shows one checklist step's parts of the PDF, or all of them again (null). */
+  const focusOn = (stepId: string | null) => {
+    setFocusStep(stepId);
+    const step = stepId ? spotFound.find((s) => s.id === stepId) : null;
+    if (!step) return;
+    if (!spotlightOn) setSpotlight(true);
+    if (pdfHidden) setPdfHidden(false);
+    setTimeout(() => pdfRef.current?.revealRegion(step.regions[0]), pdfHidden ? 400 : 0);
+  };
+  const latestFocus = useRef(focusOn);
+  latestFocus.current = focusOn;
+
+  // Escape goes back from one step to all of them, before it would leave the paper.
+  useEffect(() => {
+    if (focusIndex < 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      if (e.key !== 'Escape' || typing) return;
+      e.stopImmediatePropagation();
+      latestFocus.current(null);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [focusIndex]);
+
   if (!doc) return <div className="loading">Opening…</div>;
 
   const showPdf = !!doc.pdfFile && !pdfHidden;
@@ -379,7 +451,51 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   };
   const purposeField = purposeQuestionsField(guide);
   const purposeQuestions = purposeField ? doc.answers[guide.purpose.id]?.[purposeField.id] ?? '' : '';
-  const stage = stages.find((s) => s.id === stageId) ?? stages[0];
+  const stage = current;
+  const setChecked = (stageId: string, ids: string[]) =>
+    changeMeta({ checklist: { ...doc.meta.checklist, [stageId]: ids }, ...progressFromEdit(doc.meta, guide, stageId) });
+  /** Moves to the next or previous step; moving on ticks the step you leave. */
+  const step = (dir: 1 | -1) => {
+    if (focusIndex < 0 || stage.kind !== 'pass') return;
+    if (dir === 1) {
+      const checked = doc.meta.checklist[stage.id] ?? [];
+      const leaving = spotFound[focusIndex].id;
+      if (!checked.includes(leaving)) {
+        setChecked(stage.id, stage.checklist.map((c) => c.id).filter((c) => c === leaving || checked.includes(c)));
+      }
+    }
+    focusOn(spotFound[focusIndex + dir]?.id ?? null);
+  };
+  const spotControls =
+    pdfShown && spotFound.length > 0 ? (
+      <>
+        {focusIndex >= 0 && (
+          <span className="spot-nav">
+            <button className="btn quiet icon small" onClick={() => step(-1)} disabled={focusIndex === 0} title="Previous step">
+              ‹
+            </button>
+            <span className="spot-label" title={spotFound[focusIndex].text}>
+              {focusIndex + 1} of {spotFound.length} · {spotFound[focusIndex].text}
+            </span>
+            <button
+              className="btn quiet icon small"
+              onClick={() => step(1)}
+              title={focusIndex === spotFound.length - 1 ? 'Done: tick it and show everything' : 'Tick it and go to the next step'}
+            >
+              {focusIndex === spotFound.length - 1 ? '✓' : '›'}
+            </button>
+          </span>
+        )}
+        <button
+          className={`btn quiet small${spotlightOn ? ' on' : ''}`}
+          onClick={() => setSpotlight(!spotlightOn)}
+          title={spotlightOn ? 'Stop dimming the PDF' : 'Light up what this pass asks you to skim, and dim the rest'}
+          aria-pressed={spotlightOn}
+        >
+          Spotlight
+        </button>
+      </>
+    ) : null;
   const saveLabel: Record<SaveState, string> = {
     saved: 'Saved',
     pending: 'Editing',
@@ -430,6 +546,9 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                 }}
                 activeHighlightId={active?.id ?? null}
                 onActivateHighlight={(id) => setActive(id ? { id, focus: false } : null)}
+                spotlight={spotlight}
+                onLandmarks={setLandmarks}
+                toolbarExtra={spotControls}
               />
             </div>
             <div className="divider" onPointerDown={startDrag} role="separator" aria-orientation="vertical" />
@@ -497,7 +616,16 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
                   elapsed={elapsed(stage.id)}
                   timerRunning={running?.stage === stage.id}
                   onToggleTimer={() => toggleTimer(stage.id)}
-                  onCheck={(ids) => changeMeta({ checklist: { ...doc.meta.checklist, [stage.id]: ids }, ...progressFromEdit(doc.meta, guide, stage.id) })}
+                  onCheck={(ids) => setChecked(stage.id, ids)}
+                  spotlight={
+                    doc.pdfFile && spotSteps.length
+                      ? {
+                          found: new Set(spotFound.map((s) => s.id)),
+                          focus: focusIndex >= 0 ? spotFound[focusIndex].id : null,
+                          onFocus: focusOn,
+                        }
+                      : null
+                  }
                   onAnswer={(field, v) => setAnswer(stage.id, field, v)}
                   onDecide={(opt) => decide(stage.id, opt)}
                 />

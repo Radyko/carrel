@@ -15,7 +15,7 @@ export interface TextPiece {
 }
 
 // Headers, stamps and banners that can be set large above or beside a title.
-const JUNK =
+export const JUNK =
   /\barxiv\b|\bpreprint\b|\bproceedings\b|\bconference on\b|\bjournal of\b|\btransactions on\b|copyright|©|https?:|www\.|\bdoi\b|@|\bvol(ume)?\.?\s*\d|\bissn\b|\bisbn\b|\baccepted (at|to|for)\b|\bpublished (at|in|as)\b|\bsubmitted to\b|\bunder review\b/i;
 
 const letters = (s: string) => (s.match(/\p{L}/gu) ?? []).length;

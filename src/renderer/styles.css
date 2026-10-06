@@ -1718,3 +1718,75 @@ textarea.hl-card-note {
   color: var(--warn-text);
   overflow-wrap: anywhere;
 }
+
+/* ---------- Spotlight ---------- */
+
+:root {
+  /* Fades the ink and greys the paper, so the lit parts stand out without hiding the rest. */
+  --spot-dim: light-dark(rgba(214, 210, 202, 0.8), rgba(24, 24, 26, 0.72));
+}
+.carrel-spotlight {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.carrel-spotlight .spot-dim {
+  fill: var(--spot-dim);
+}
+.carrel-spotlight .spot-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.spot-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin-right: 6px;
+}
+.spot-label {
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+.check-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.spot-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline dotted var(--line-strong);
+  text-underline-offset: 3px;
+}
+.spot-link:hover,
+.checklist li.focused .spot-link {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}
+.checklist li.focused .spot-link {
+  font-weight: 600;
+}
+.checklist li.done .spot-link {
+  color: var(--text-3);
+}
+.spot-missing {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.spot-hint {
+  margin-bottom: 0;
+}

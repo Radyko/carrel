@@ -117,6 +117,18 @@ from [`guide/default-guide.yaml`](../guide/default-guide.yaml). Edit it in any
 text editor; Carrel reloads it when its window regains focus. Comments at the
 top of the file explain the rules.
 
+A checklist step can have a `spotlight` list naming the parts of the PDF it is
+about: `title`, `abstract`, `introduction`, `conclusion`, `headings`,
+`figures` or `references`. While you are on that pass, those parts are lit
+and the rest of the PDF is dimmed. Leave `spotlight` out for no spotlight:
+
+```yaml
+checklist:
+  - id: abstract
+    text: Title and abstract
+    spotlight: [title, abstract]
+```
+
 When a new version of Carrel improves the default guide, your `guide.yaml` is
 updated to match, but only if you never edited it. A guide you have changed is
 always left alone.

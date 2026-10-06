@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PDFViewer } from 'pdfjs-dist/web/pdf_viewer.mjs';
 import {
@@ -8,7 +8,9 @@ import {
   type HighlightColor,
   type Rect,
 } from '../../shared/highlights';
+import type { Landmarks, Region } from '../../shared/landmarks';
 import { api, errorText } from '../api';
+import { readLandmarks } from '../landmarks';
 import { loadPdfJs, loadPdfViewer } from '../pdf';
 
 export interface PdfHandle {
@@ -20,6 +22,14 @@ export interface PdfHandle {
   highlightSelection(color?: HighlightColor): void;
   /** Scrolls a highlight into view. */
   revealHighlight(h: Highlight): void;
+  /** Scrolls a spotlit region into view. */
+  revealRegion(r: Region): void;
+}
+
+/** Parts of the pages to keep lit while the rest is dimmed; `focus`, when set, narrows them. */
+export interface Spotlight {
+  regions: Region[];
+  focus: Region[] | null;
 }
 
 /** A new highlight: the part of a selection on one page. */
@@ -34,6 +44,11 @@ interface Props {
   /** The highlight whose note is open, if any. */
   activeHighlightId: string | null;
   onActivateHighlight: (id: string | null) => void;
+  spotlight: Spotlight | null;
+  /** Called once the paper's landmarks are found. */
+  onLandmarks: (landmarks: Landmarks) => void;
+  /** More controls for the toolbar. */
+  toolbarExtra?: ReactNode;
 }
 
 /** The colour picker shown under a fresh text selection. */
@@ -49,6 +64,10 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
   highlightsRef.current = props.highlights;
   const activeRef = useRef(props.activeHighlightId);
   activeRef.current = props.activeHighlightId;
+  const spotlightRef = useRef(props.spotlight);
+  spotlightRef.current = props.spotlight;
+  const onLandmarksRef = useRef(props.onLandmarks);
+  onLandmarksRef.current = props.onLandmarks;
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerElRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<PDFViewer | null>(null);
@@ -87,9 +106,21 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         linkService.setViewer(viewer);
         viewerRef.current = viewer;
         // pdf.js redraws pages as you scroll and zoom; draw highlights onto each one.
-        eventBus.on('pagerendered', (e: { pageNumber: number; source: { div: HTMLDivElement } }) =>
-          drawHighlights(e.source.div, e.pageNumber, highlightsRef.current, activeRef.current),
-        );
+        let looked = false;
+        eventBus.on('pagerendered', (e: { pageNumber: number; source: { div: HTMLDivElement } }) => {
+          drawHighlights(e.source.div, e.pageNumber, highlightsRef.current, activeRef.current);
+          drawSpotlight(e.source.div, e.pageNumber, spotlightRef.current);
+          // Find the landmarks once the first page is on screen, so they never hold it up.
+          if (!looked && viewer?.pdfDocument) {
+            looked = true;
+            const doc = viewer.pdfDocument;
+            readLandmarks(doc).then(
+              (found) => !cancelled && onLandmarksRef.current(found),
+              // No spotlight for this paper; reading is unaffected.
+              (err) => console.warn('Could not find the parts of this PDF:', err),
+            );
+          }
+        });
         eventBus.on('pagesinit', () => {
           if (!viewer) return;
           viewer.currentScaleValue = 'page-width';
@@ -144,6 +175,13 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
       }
     });
   }, [props.highlights, props.activeHighlightId]);
+
+  // Redraw when the spotlight changes.
+  useEffect(() => {
+    containerRef.current?.querySelectorAll<HTMLDivElement>('.page[data-page-number]').forEach((div) => {
+      if (div.querySelector('.canvasWrapper')) drawSpotlight(div, Number(div.dataset.pageNumber), props.spotlight);
+    });
+  }, [props.spotlight]);
 
   /** The selection in the PDF, split by page and turned into page fractions. */
   const selectionParts = useCallback((): NewHighlight[] => {
@@ -250,6 +288,14 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
       };
       tryScroll();
     },
+    revealRegion: (r) => {
+      const container = containerRef.current;
+      const pageDiv = container?.querySelector<HTMLDivElement>(`.page[data-page-number="${r.page}"]`);
+      if (!container || !pageDiv) return go(r.page);
+      // Page boxes are laid out before they are drawn, so this works for any page.
+      const top = pageDiv.offsetTop + r.rect[1] * pageDiv.clientHeight - 24;
+      container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    },
   }));
 
   return (
@@ -273,6 +319,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
           ›
         </button>
         <span className="spacer" />
+        {props.toolbarExtra}
         <button className="btn quiet icon small" onClick={zoomOut} title="Zoom out">
           −
         </button>
@@ -352,4 +399,37 @@ function drawHighlights(pageDiv: HTMLDivElement, page: number, highlights: Highl
   const canvas = pageDiv.querySelector(':scope > .canvasWrapper');
   if (canvas) canvas.after(layer);
   else pageDiv.prepend(layer);
+}
+
+/**
+ * Dims a page except for the spotlit regions on it. Drawn between the page
+ * image and its text, so selecting and highlighting work as usual.
+ */
+function drawSpotlight(pageDiv: HTMLDivElement, page: number, spotlight: Spotlight | null): void {
+  pageDiv.querySelector(':scope > .carrel-spotlight')?.remove();
+  if (!spotlight) return;
+  const lit = (spotlight.focus ?? spotlight.regions).filter((r) => r.page === page);
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = <K extends keyof SVGElementTagNameMap>(name: K, attrs: Record<string, string | number>) => {
+    const node = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
+    return node;
+  };
+  const svg = el('svg', { class: 'carrel-spotlight', viewBox: '0 0 1 1', preserveAspectRatio: 'none', 'aria-hidden': 'true' });
+  const maskId = `carrel-spot-${page}`;
+  const mask = el('mask', { id: maskId, maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: 1, height: 1 });
+  mask.appendChild(el('rect', { x: 0, y: 0, width: 1, height: 1, fill: 'white' }));
+  for (const { rect: [x, y, w, h] } of lit) mask.appendChild(el('rect', { x, y, width: w, height: h, fill: 'black' }));
+  const defs = el('defs', {});
+  defs.appendChild(mask);
+  svg.appendChild(defs);
+  svg.appendChild(el('rect', { class: 'spot-dim', x: 0, y: 0, width: 1, height: 1, mask: `url(#${maskId})` }));
+  if (spotlight.focus) {
+    for (const { rect: [x, y, w, h] } of lit) {
+      svg.appendChild(el('rect', { class: 'spot-ring', x, y, width: w, height: h, 'vector-effect': 'non-scaling-stroke' }));
+    }
+  }
+  const text = pageDiv.querySelector(':scope > .textLayer');
+  if (text) text.before(svg);
+  else pageDiv.appendChild(svg);
 }
