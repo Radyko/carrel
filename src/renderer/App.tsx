@@ -611,7 +611,8 @@ export function App() {
 
       {form && (
         <PaperForm
-          key={form.pdfPath ?? form.id ?? 'new'}
+          // Prefixed so it never shares a key with the Reader beside it (both use the paper id).
+          key={`form:${form.pdfPath ?? form.id ?? 'new'}`}
           mode={form.mode}
           initial={form.initial}
           pdfName={form.pdfName}
