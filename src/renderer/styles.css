@@ -778,6 +778,28 @@ button.chip:hover {
 .reader.focus .pdf-body.with-contents .pdf-scroll {
   left: 0;
 }
+.notes-side[hidden] {
+  display: none;
+}
+.reader.focus .pdf-side {
+  position: relative;
+}
+/* The note on a highlight, floating over the paper in focus mode. */
+.hl-float {
+  position: absolute;
+  right: 22px;
+  width: min(340px, 45%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  max-height: 60%;
+}
+.hl-float .hl-card {
+  margin: 0;
+  max-height: none;
+  background: var(--bg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
 .focus-strip {
   /* Room for the macOS window buttons, and somewhere to drag the window. */
   height: 34px;

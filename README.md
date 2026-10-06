@@ -53,7 +53,7 @@ per course or project.
 
 While reading, ⌘F finds words in the paper, **Contents** lists its sections so
 you can jump between them, and **Focus mode** (⌘⇧F) hides everything but the
-paper and your notes.
+paper, with your highlight notes opening right on the page.
 
 ## Make it yours
 
