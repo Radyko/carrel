@@ -173,6 +173,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
 
   /** The highlight whose note is open beside the paper. */
   const [active, setActive] = useState<{ id: string; focus: boolean } | null>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   /** Rewrites the paper's highlights through a function of the current list. */
   const changeHighlights = useCallback(
@@ -384,6 +386,11 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         return true;
       },
       escape: () => {
+        // Close the open note first, so Escape goes from writing back to reading.
+        if (activeRef.current) {
+          setActive(null);
+          return true;
+        }
         if (!focus) return false;
         toggleFocus();
         return true;

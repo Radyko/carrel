@@ -71,7 +71,8 @@ a button that hides the PDF while you write from memory. Click **Show PDF** at t
   PDF (or press ⌘⇧F) for just the paper, with no guide beside it. Highlight
   as usual: the note on a highlight opens over the page, next to it. The
   contents button stays at the top left; click the same corner button at the
-  top right, or press Escape, to leave.
+  top right, or press Escape, to leave. If a note is open, Escape closes the
+  note first and keeps you in focus mode.
 
 ## Highlights and notes
 
