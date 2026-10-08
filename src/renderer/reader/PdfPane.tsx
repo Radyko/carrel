@@ -482,7 +482,7 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
           }}
           onBlur={() => setPageInput(String(page))}
         />
-        <span className="muted">of {pages || '…'}</span>
+        <span className="muted page-count">of {pages || '…'}</span>
         <button className="btn quiet icon small" onClick={() => go(page + 1)} disabled={page >= pages} title="Next page">
           ›
         </button>

@@ -763,9 +763,23 @@ button.chip:hover {
 .reader.focus > .toolbar {
   display: none;
 }
-/* In focus mode the bar above the paper keeps only Contents and Exit focus. */
-.reader.focus .pdf-toolbar > :not(.contents-toggle):not(.focus-toggle) {
+/* In focus mode the bar above the paper keeps only Contents, the page and Exit focus. */
+.reader.focus .pdf-toolbar > :not(.contents-toggle):not(.focus-toggle):not(.page-input):not(.page-count) {
   display: none;
+}
+/* The page sits quietly in the middle. */
+.reader.focus .page-input {
+  margin-left: auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-2);
+  text-align: right;
+  padding-right: 3px;
+}
+.reader.focus .page-input:hover,
+.reader.focus .page-input:focus {
+  border-color: var(--line-strong);
+  background: var(--bg-field);
 }
 .reader.focus .pdf-toolbar {
   border-bottom-color: transparent;
