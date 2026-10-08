@@ -74,8 +74,6 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
   const [focus, setFocus] = useState(false);
   const [focusHint, setFocusHint] = useState(false);
   const pdfRef = useRef<PdfHandle>(null);
-  const [barStart, setBarStart] = useState<HTMLSpanElement | null>(null);
-  const [barEnd, setBarEnd] = useState<HTMLSpanElement | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -175,6 +173,8 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
 
   /** The highlight whose note is open beside the paper. */
   const [active, setActive] = useState<{ id: string; focus: boolean } | null>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   /** Rewrites the paper's highlights through a function of the current list. */
   const changeHighlights = useCallback(
@@ -386,6 +386,11 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
         return true;
       },
       escape: () => {
+        // Close the open note first, so Escape goes from writing back to reading.
+        if (activeRef.current) {
+          setActive(null);
+          return true;
+        }
         if (!focus) return false;
         toggleFocus();
         return true;
@@ -465,44 +470,73 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
     error: 'Not saved',
   };
 
+  const shortcut = props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F';
+  // One button for both: Exit focus sits exactly where Focus was, at the same size.
+  const focusButton = (
+    <button
+      className={`btn quiet icon focus-toggle${focus ? ' on' : ''}`}
+      onClick={toggleFocus}
+      title={focus ? 'Exit focus (Esc)' : `Focus: just the paper (${shortcut})`}
+      aria-label={focus ? 'Exit focus' : 'Focus'}
+      aria-pressed={focus}
+    >
+      <FocusIcon exit={focus} />
+    </button>
+  );
+
   return (
     <div className={`reader${focus ? ' focus' : ''}`}>
       {focus && props.isMac && <div className="focus-strip" />}
-      {focus && (
-        <button className="btn focus-exit" onClick={toggleFocus} title={`Leave focus mode (Esc or ${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}>
-          Exit focus
-        </button>
-      )}
+      {focus && !showPdf && <div className="focus-actions">{focusButton}</div>}
       {focusHint && (
         <div className="focus-hint" role="status">
-          Focus mode. Click Exit focus, or press Esc, to leave.
+          Focus mode. Click the same button again, or press Esc, to leave.
         </div>
       )}
       <div className={`toolbar reader-bar${props.isMac ? ' inset' : ''}`}>
-        <button className="btn quiet" onClick={props.onBack} title="Back to the library">
-          ‹ Library
-        </button>
-        {/* The PDF's own controls (contents, page, zoom, find) are drawn into these two spots. */}
-        <span className="pdf-controls" ref={setBarStart} />
-        <span className="title" title={doc.meta.title}>
-          {doc.meta.title}
-        </span>
-        <span className="pdf-controls" ref={setBarEnd} />
-        <span className={`save-state ${saveState}`} aria-live="polite">
-          {saveLabel[saveState]}
-        </span>
-        {doc.pdfFile && pdfHidden && (
-          <button className="btn quiet small" onClick={() => setPdfHidden(false)}>
-            Show PDF
+        {/* Library and the title above the paper; the steps above the notes, level with them. */}
+        <div className="bar-left" style={showPdf ? { width: `${split * 100}%` } : undefined}>
+          <button className="btn quiet" onClick={props.onBack} title="Back to the library">
+            ‹ Library
           </button>
-        )}
-        <button
-          className="btn small"
-          onClick={toggleFocus}
-          title={`Just the paper, nothing else (${props.isMac ? '⇧⌘F' : 'Ctrl+Shift+F'})`}
-        >
-          Focus
-        </button>
+          <span className="title" title={doc.meta.title}>
+            {doc.meta.title}
+          </span>
+          <span className="spacer" />
+          <span className={`save-state ${saveState}`} aria-live="polite">
+            {saveLabel[saveState]}
+          </span>
+          {doc.pdfFile && pdfHidden && (
+            <button className="btn quiet small" onClick={() => setPdfHidden(false)}>
+              Show PDF
+            </button>
+          )}
+        </div>
+        <div className={`bar-steps${showPdf ? '' : ' full'}`}>
+            <nav className="tabs" role="tablist">
+              {stages.map((s) => {
+                // A tick means the stage is finished: a purpose chosen, or a decision that ends the pass.
+                const option = s.kind === 'pass' ? s.decisions.find((d) => d.id === doc.meta.decisions[s.id]) : null;
+                const decided = s.kind === 'pass' ? !!option && (!!option.next || option.status !== 'in-progress') : !!doc.meta.purpose;
+                return (
+                  <button
+                    key={s.id}
+                    role="tab"
+                    aria-selected={s.id === stage.id}
+                    className={`tab${s.id === stage.id ? ' active' : ''}`}
+                    onClick={() => goTo(s.id)}
+                    title={s.kind === 'pass' ? `Pass ${s.pass}: ${s.title}` : s.title}
+                  >
+                    {s.kind === 'pass' ? <span className="tab-num">{s.pass}</span> : null}
+                    <span className="tab-title">{s.title}</span>
+                    {decided && <span className="tab-done" aria-label="done">✓</span>}
+                    {running?.stage === s.id && <span className="tab-running" aria-label="timer running" />}
+                  </button>
+                );
+              })}
+            </nav>
+          {!showPdf && focusButton}
+        </div>
       </div>
 
       {doc.error && <div className="banner">{doc.error} Your notes are shown read-only until it is fixed.</div>}
@@ -513,7 +547,7 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
             <div className="pdf-side" ref={pdfSideRef} style={{ width: paperOnly ? '100%' : `${split * 100}%` }}>
               <PdfPane
                 ref={pdfRef}
-                toolbar={{ start: barStart, end: barEnd }}
+                toolbarEnd={focusButton}
                 paperId={doc.id}
                 initialPage={doc.meta.lastPage}
                 onPageChange={onPageChange}
@@ -539,28 +573,6 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
           </>
         )}
         <div className={`notes-side${showPdf ? '' : ' full'}`} hidden={paperOnly}>
-          <nav className="tabs" role="tablist">
-            {stages.map((s) => {
-              // A tick means the stage is finished: a purpose chosen, or a decision that ends the pass.
-              const option = s.kind === 'pass' ? s.decisions.find((d) => d.id === doc.meta.decisions[s.id]) : null;
-              const decided = s.kind === 'pass' ? !!option && (!!option.next || option.status !== 'in-progress') : !!doc.meta.purpose;
-              return (
-                <button
-                  key={s.id}
-                  role="tab"
-                  aria-selected={s.id === stage.id}
-                  className={`tab${s.id === stage.id ? ' active' : ''}`}
-                  onClick={() => goTo(s.id)}
-                  title={s.kind === 'pass' ? `Pass ${s.pass}: ${s.title}` : s.title}
-                >
-                  {s.kind === 'pass' ? <span className="tab-num">{s.pass}</span> : null}
-                  <span className="tab-title">{s.title}</span>
-                  {decided && <span className="tab-done" aria-label="done">✓</span>}
-                  {running?.stage === s.id && <span className="tab-running" aria-label="timer running" />}
-                </button>
-              );
-            })}
-          </nav>
           {!paperOnly && card}
           <div className="notes-scroll" ref={scrollRef}>
             <fieldset className="notes-content" disabled={!!doc.error}>
@@ -612,3 +624,15 @@ export const Reader = forwardRef<ReaderHandle, Props>(function Reader(props, ref
     </div>
   );
 });
+
+/** Corners pointing out to focus, pointing in to leave. */
+function FocusIcon({ exit }: { exit: boolean }) {
+  const d = exit
+    ? 'M5.5 1.5v4h-4M10.5 1.5v4h4M5.5 14.5v-4h-4M10.5 14.5v-4h4'
+    : 'M1.5 5.5v-4h4M14.5 5.5v-4h-4M1.5 10.5v4h4M14.5 10.5v4h-4';
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+      <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

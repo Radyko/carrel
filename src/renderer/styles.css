@@ -56,6 +56,8 @@
     0 0 0 1px light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.08));
   --radius: 7px;
   --toolbar-h: 52px;
+  /* The bar above the PDF. */
+  --panel-bar-h: 38px;
 }
 
 :root[data-tone='linen'] {
@@ -758,13 +760,29 @@ button.chip:hover {
   padding-left: 84px;
 }
 /* Focus mode: just the paper and the notes. */
-.reader.focus > .toolbar,
-.reader.focus .pdf-contents,
-.reader.focus .tabs {
+.reader.focus > .toolbar {
   display: none;
 }
-.reader.focus .pdf-body.with-contents .pdf-scroll {
-  left: 0;
+/* In focus mode the bar above the paper keeps only Contents, the page and Exit focus. */
+.reader.focus .pdf-toolbar > :not(.contents-toggle):not(.focus-toggle):not(.page-input):not(.page-count) {
+  display: none;
+}
+/* The page sits quietly in the middle. */
+.reader.focus .page-input {
+  margin-left: auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-2);
+  text-align: right;
+  padding-right: 3px;
+}
+.reader.focus .page-input:hover,
+.reader.focus .page-input:focus {
+  border-color: var(--line-strong);
+  background: var(--bg-field);
+}
+.reader.focus .pdf-toolbar {
+  border-bottom-color: transparent;
 }
 .notes-side[hidden] {
   display: none;
@@ -801,19 +819,29 @@ button.chip:hover {
 .reader {
   position: relative;
 }
-/* Always on screen in focus mode, so leaving is one click. */
-.focus-exit {
+/* Focus mode without a PDF: the button stays at the top right. */
+.focus-actions {
   position: absolute;
-  top: 8px;
-  right: 24px;
+  top: 0;
+  right: 14px;
+  height: calc(var(--toolbar-h) - 1px);
   z-index: 40;
-  opacity: 0.85;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
   -webkit-app-region: no-drag;
 }
-.focus-exit:hover,
-.focus-exit:focus-visible {
-  opacity: 1;
+/* Focus and Exit focus are one button in one spot; only its icon changes. */
+.focus-toggle {
+  margin-left: auto;
+}
+.contents-toggle,
+.focus-toggle {
+  color: var(--text-2);
+}
+.contents-toggle.on,
+.focus-toggle.on {
+  color: var(--accent-text);
+  background: var(--accent-soft);
 }
 .focus-hint {
   position: fixed;
@@ -868,31 +896,45 @@ button.chip:hover {
   color: var(--warn-text);
   font-weight: 600;
 }
-/* The reader's one toolbar: library, the PDF's controls, the title, Focus. */
+/* The reader's top bar: library and the title over the paper, the steps over the notes. */
 .reader-bar {
-  gap: 4px;
+  gap: 0;
+  padding: 0;
 }
-.reader-bar .title {
-  flex: 1;
+.app.window-buttons .reader-bar.inset {
+  padding-left: 0;
+}
+.bar-left {
+  flex: none;
   min-width: 0;
-  padding: 0 8px;
-  font-weight: 500;
-  color: var(--text-2);
-}
-.pdf-controls {
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: 2px;
-  font-size: 12px;
+  gap: 4px;
+  padding: 0 10px 0 14px;
 }
-.pdf-controls:empty {
-  display: none;
+.app.window-buttons .reader-bar.inset .bar-left {
+  padding-left: 84px;
 }
-.pdf-controls .bar-gap {
-  width: 10px;
+.bar-left > * {
+  -webkit-app-region: no-drag;
 }
-.pdf-controls .btn.on {
-  color: var(--accent-text);
+.bar-left .spacer {
+  flex: 1;
+  -webkit-app-region: drag;
+}
+.reader-bar .title {
+  min-width: 0;
+  padding: 0 8px;
+}
+.bar-steps {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 14px;
 }
 .reader-body {
   flex: 1;
@@ -942,6 +984,23 @@ body.resizing .notes-side {
   display: flex;
   flex-direction: column;
   background: var(--pdf-bg);
+}
+.pdf-toolbar {
+  height: var(--panel-bar-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-subtle);
+  font-size: 12px;
+}
+.pdf-toolbar .spacer {
+  flex: 1;
+}
+.pdf-toolbar .btn.on {
+  color: var(--accent-text);
 }
 .page-input {
   width: 38px;
@@ -1107,14 +1166,15 @@ body.resizing .notes-side {
   background: var(--bg);
 }
 .tabs {
-  flex: none;
+  flex: 1;
+  min-width: 0;
   display: flex;
+  align-items: center;
   gap: 4px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--line);
+  padding: 0 0 0 12px;
   container-type: inline-size;
 }
-.notes-side.full .tabs {
+.bar-steps.full .tabs {
   justify-content: center;
 }
 /* Equal steps that share the width, so all of them always fit. */
@@ -1128,7 +1188,7 @@ body.resizing .notes-side {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  padding: 5px 6px;
+  padding: 3px 6px;
   color: var(--text-2);
   white-space: nowrap;
   cursor: default;
@@ -1142,7 +1202,7 @@ body.resizing .notes-side {
   color: var(--accent-text);
   font-weight: 500;
 }
-.notes-side.full .tab {
+.bar-steps.full .tab {
   flex: 0 1 180px;
 }
 .tab-title {

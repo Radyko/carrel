@@ -42,10 +42,11 @@ Papers you add while a collection is selected go into it.
 ## Reading
 
 The reader shows the PDF on the left and your notes on the right. Drag the
-line between them to resize. One bar across the top holds everything else:
-**Library** to go back, **Contents**, the page number, zoom, Find and
-**Focus**. To change a paper's title or authors, use **Edit details…** in the
-library.
+line between them to resize. The top bar has **Library**, the paper's title and,
+above your notes, Purpose and the passes. The bar above the PDF has the
+contents button on the left, then the page number, zoom, Find and the Focus
+button on the right. To change a paper's title or authors, use **Edit
+details…** in the library.
 
 Each pass has:
 
@@ -54,22 +55,25 @@ Each pass has:
 - a short checklist and a few questions,
 - a choice at the end: keep going, come back later, or stop here.
 
-Move between Purpose and the passes freely with the steps above your notes.
-Everything saves as you type; Carrel only says something if saving is slow or
-fails. Summary questions have a button that hides the PDF while you write from
-memory. Click **Show PDF** at the top afterwards to check what you missed.
+Move between Purpose and the passes freely. Everything saves as you type;
+Carrel only says something if saving is slow or fails. Summary questions have
+a button that hides the PDF while you write from memory. Click **Show PDF** at the top afterwards to check what you missed.
 
-- **Find in the paper**: press ⌘F (or click the magnifying glass in the top
-  bar) and type. Every match is marked; press Return for the next one and
+- **Find in the paper**: press ⌘F (or click the magnifying glass above the
+  PDF) and type. Every match is marked; press Return for the next one and
   ⇧Return for the previous. Escape closes it.
-- **Contents**: click **Contents** in the top bar for a list of the paper's
-  sections. Click one to jump there; the section you're reading is marked.
+- **Contents**: click the contents button (a small list icon) at the top left
+  of the PDF for a list of the paper's sections. Click one to jump there; the
+  section you're reading is marked.
   Carrel uses the PDF's own bookmarks when it has them, and otherwise finds
   the headings itself.
-- **Focus**: click **Focus** at the top of the reader (or press ⌘⇧F) for
-  just the paper, with no guide beside it. Highlight as usual: the note on a
-  highlight opens over the page, next to it. Click **Exit focus** at the top
-  right (or press Escape) to leave.
+- **Focus**: click the Focus button (four corners) at the top right of the
+  PDF (or press ⌘⇧F) for just the paper, with no guide beside it. Highlight
+  as usual: the note on a highlight opens over the page, next to it. The
+  contents button stays at the top left and the page number in the middle;
+  click the same corner button at the top right, or press Escape, to leave.
+  If a note is open, Escape closes the note first and keeps you in focus
+  mode.
 
 ## Highlights and notes
 

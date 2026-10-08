@@ -1,5 +1,4 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EventBus, PDFViewer } from 'pdfjs-dist/web/pdf_viewer.mjs';
 import {
@@ -35,8 +34,8 @@ export interface PdfHandle {
 export type NewHighlight = Omit<Highlight, 'id'>;
 
 interface Props {
-  /** Spots in the reader's top bar for the PDF's controls, before and after the title. */
-  toolbar: { start: HTMLElement | null; end: HTMLElement | null };
+  /** Drawn at the end of the bar above the PDF (the Focus button). */
+  toolbarEnd?: React.ReactNode;
   paperId: string;
   initialPage: number | null;
   onPageChange: (page: number) => void;
@@ -65,6 +64,16 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 8;
 
 const COLOR_NAMES: Record<HighlightColor, string> = { yellow: 'Yellow', green: 'Green', blue: 'Blue', pink: 'Pink' };
+
+/** A list of sections, drawn like the sidebar button in the library. */
+function ContentsIcon() {
+  return (
+    <svg width="16" height="14" viewBox="0 0 16 14" aria-hidden>
+      <rect x="0.75" y="0.75" width="14.5" height="12.5" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M4 4.5h8M4 7h8M4 9.5h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref) {
   const { paperId, initialPage, onPageChange } = props;
@@ -450,61 +459,52 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
       className={`pdf-pane${props.darkPages ? ' dark-pages' : ''}`}
       style={props.darkPages ? ({ '--dark-paper': darkPageColors(props.tone).paper } as React.CSSProperties) : undefined}
     >
-      {/* The controls live in the reader's top bar, so there is one toolbar, not two. */}
-      {props.toolbar.start &&
-        createPortal(
-          <>
-            <button
-              className={`btn quiet small${contentsOpen ? ' on' : ''}`}
-              onClick={toggleContents}
-              title="Show or hide the paper's sections"
-              aria-pressed={contentsOpen}
-            >
-              Contents
-            </button>
-          </>,
-          props.toolbar.start,
-        )}
-      {props.toolbar.end &&
-        createPortal(
-          <>
-            <button className="btn quiet icon small" onClick={() => go(page - 1)} disabled={page <= 1} title="Previous page">
-              ‹
-            </button>
-            <input
-              className="page-input"
-              value={pageInput}
-              aria-label="Page"
-              onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ''))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') go(Number(pageInput) || page);
-              }}
-              onBlur={() => setPageInput(String(page))}
-            />
-            <span className="muted">of {pages || '…'}</span>
-            <button className="btn quiet icon small" onClick={() => go(page + 1)} disabled={page >= pages} title="Next page">
-              ›
-            </button>
-            <span className="bar-gap" />
-            <button className="btn quiet icon small" onClick={zoomOut} title="Zoom out">
-              −
-            </button>
-            <span className="zoom muted">{Math.round(scale * 100)}%</span>
-            <button className="btn quiet icon small" onClick={zoomIn} title="Zoom in">
-              +
-            </button>
-            <button className={`btn quiet small${fit ? ' on' : ''}`} onClick={fitWidth} title="Fit to width">
-              Fit width
-            </button>
-            <button className={`btn quiet icon small${find ? ' on' : ''}`} onClick={() => (find ? closeFind() : openFind())} title="Find in this paper (⌘F)" aria-label="Find in this paper">
-              <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
-                <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
-            </button>
-          </>,
-          props.toolbar.end,
-        )}
+      <div className="pdf-toolbar">
+        <button
+          className={`btn quiet icon contents-toggle${contentsOpen ? ' on' : ''}`}
+          onClick={toggleContents}
+          title={contentsOpen ? 'Hide the contents' : "Show the contents: the paper's sections"}
+          aria-label="Contents"
+          aria-pressed={contentsOpen}
+        >
+          <ContentsIcon />
+        </button>
+        <button className="btn quiet icon small" onClick={() => go(page - 1)} disabled={page <= 1} title="Previous page">
+          ‹
+        </button>
+        <input
+          className="page-input"
+          value={pageInput}
+          aria-label="Page"
+          onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ''))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') go(Number(pageInput) || page);
+          }}
+          onBlur={() => setPageInput(String(page))}
+        />
+        <span className="muted page-count">of {pages || '…'}</span>
+        <button className="btn quiet icon small" onClick={() => go(page + 1)} disabled={page >= pages} title="Next page">
+          ›
+        </button>
+        <span className="spacer" />
+        <button className="btn quiet icon small" onClick={zoomOut} title="Zoom out">
+          −
+        </button>
+        <span className="zoom muted">{Math.round(scale * 100)}%</span>
+        <button className="btn quiet icon small" onClick={zoomIn} title="Zoom in">
+          +
+        </button>
+        <button className={`btn quiet small${fit ? ' on' : ''}`} onClick={fitWidth} title="Fit to width">
+          Fit width
+        </button>
+        <button className={`btn quiet icon small${find ? ' on' : ''}`} onClick={() => (find ? closeFind() : openFind())} title="Find in this paper (⌘F)" aria-label="Find in this paper">
+          <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+        {props.toolbarEnd}
+      </div>
       {find && (
         <div className="pdf-find">
           <input
