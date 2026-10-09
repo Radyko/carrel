@@ -764,7 +764,7 @@ button.chip:hover {
   display: none;
 }
 /* In focus mode the bar above the paper keeps only Contents, the page and Exit focus. */
-.reader.focus .pdf-toolbar > :not(.contents-toggle):not(.focus-toggle):not(.page-input):not(.page-count) {
+.reader.focus .pdf-toolbar > :not(.contents-toggle):not(.focus-toggle):not(.page-input):not(.page-count):not(.pdf-find) {
   display: none;
 }
 /* The page sits quietly in the middle. */
@@ -1045,16 +1045,14 @@ body.resizing .notes-side {
   mix-blend-mode: multiply;
   pointer-events: none;
 }
+/* Find, in the middle of the bar above the PDF while it is open. */
 .pdf-find {
-  height: 36px;
-  flex: none;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 8px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-subtle);
-  font-size: 12px;
+  padding: 0 4px;
 }
 .find-input {
   flex: 1;

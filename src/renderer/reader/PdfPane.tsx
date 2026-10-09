@@ -469,82 +469,86 @@ export const PdfPane = forwardRef<PdfHandle, Props>(function PdfPane(props, ref)
         >
           <ContentsIcon />
         </button>
-        <button className="btn quiet icon small" onClick={() => go(page - 1)} disabled={page <= 1} title="Previous page">
-          ‹
-        </button>
-        <input
-          className="page-input"
-          value={pageInput}
-          aria-label="Page"
-          onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ''))}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') go(Number(pageInput) || page);
-          }}
-          onBlur={() => setPageInput(String(page))}
-        />
-        <span className="muted page-count">of {pages || '…'}</span>
-        <button className="btn quiet icon small" onClick={() => go(page + 1)} disabled={page >= pages} title="Next page">
-          ›
-        </button>
-        <span className="spacer" />
-        <button className="btn quiet icon small" onClick={zoomOut} title="Zoom out">
-          −
-        </button>
-        <span className="zoom muted">{Math.round(scale * 100)}%</span>
-        <button className="btn quiet icon small" onClick={zoomIn} title="Zoom in">
-          +
-        </button>
-        <button className={`btn quiet small${fit ? ' on' : ''}`} onClick={fitWidth} title="Fit to width">
-          Fit width
-        </button>
-        <button className={`btn quiet icon small${find ? ' on' : ''}`} onClick={() => (find ? closeFind() : openFind())} title="Find in this paper (⌘F)" aria-label="Find in this paper">
-          <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
-            <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-            <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
-        </button>
+        {/* Find takes over the middle of the bar, so it never adds a second row. */}
+        {find ? (
+          <div className="pdf-find" role="search">
+            <input
+              ref={findInputRef}
+              className="find-input"
+              type="search"
+              placeholder="Find in this paper"
+              aria-label="Find in this paper"
+              value={find.query}
+              autoFocus
+              onChange={(e) => {
+                const query = e.target.value;
+                setFind({ query, current: 0, total: 0, searched: false });
+                search(query);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (find.query) search(find.query, true, e.shiftKey);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  closeFind();
+                }
+              }}
+            />
+            <span className="find-count muted" aria-live="polite">
+              {!find.query.trim() || !find.searched ? '' : find.total ? `${find.current} of ${find.total}` : 'Not found'}
+            </span>
+            <button className="btn quiet icon small" onClick={() => search(find.query, true, true)} disabled={!find.total} title="Previous match (⇧Return)" aria-label="Previous match">
+              ↑
+            </button>
+            <button className="btn quiet icon small" onClick={() => search(find.query, true)} disabled={!find.total} title="Next match (Return)" aria-label="Next match">
+              ↓
+            </button>
+            <button className="btn quiet small" onClick={closeFind}>
+              Done
+            </button>
+          </div>
+        ) : (
+          <>
+            <button className="btn quiet icon small" onClick={() => go(page - 1)} disabled={page <= 1} title="Previous page">
+              ‹
+            </button>
+            <input
+              className="page-input"
+              value={pageInput}
+              aria-label="Page"
+              onChange={(e) => setPageInput(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') go(Number(pageInput) || page);
+              }}
+              onBlur={() => setPageInput(String(page))}
+            />
+            <span className="muted page-count">of {pages || '…'}</span>
+            <button className="btn quiet icon small" onClick={() => go(page + 1)} disabled={page >= pages} title="Next page">
+              ›
+            </button>
+            <span className="spacer" />
+            <button className="btn quiet icon small" onClick={zoomOut} title="Zoom out">
+              −
+            </button>
+            <span className="zoom muted">{Math.round(scale * 100)}%</span>
+            <button className="btn quiet icon small" onClick={zoomIn} title="Zoom in">
+              +
+            </button>
+            <button className={`btn quiet small${fit ? ' on' : ''}`} onClick={fitWidth} title="Fit to width">
+              Fit width
+            </button>
+            <button className="btn quiet icon small" onClick={openFind} title="Find in this paper (⌘F)" aria-label="Find in this paper">
+              <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </button>
+          </>
+        )}
         {props.toolbarEnd}
       </div>
-      {find && (
-        <div className="pdf-find">
-          <input
-            ref={findInputRef}
-            className="find-input"
-            type="search"
-            placeholder="Find in this paper"
-            aria-label="Find in this paper"
-            value={find.query}
-            autoFocus
-            onChange={(e) => {
-              const query = e.target.value;
-              setFind({ query, current: 0, total: 0, searched: false });
-              search(query);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                if (find.query) search(find.query, true, e.shiftKey);
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                e.stopPropagation();
-                closeFind();
-              }
-            }}
-          />
-          <span className="find-count muted" aria-live="polite">
-            {!find.query.trim() || !find.searched ? '' : find.total ? `${find.current} of ${find.total}` : 'Not found'}
-          </span>
-          <button className="btn quiet icon small" onClick={() => search(find.query, true, true)} disabled={!find.total} title="Previous match (⇧Return)" aria-label="Previous match">
-            ↑
-          </button>
-          <button className="btn quiet icon small" onClick={() => search(find.query, true)} disabled={!find.total} title="Next match (Return)" aria-label="Next match">
-            ↓
-          </button>
-          <button className="btn quiet small" onClick={closeFind}>
-            Done
-          </button>
-        </div>
-      )}
       <div className={`pdf-body${contentsOpen ? ' with-contents' : ''}`} ref={bodyRef}>
         {contentsOpen && (
           <nav className="pdf-contents" aria-label="Sections" ref={contentsRef}>
